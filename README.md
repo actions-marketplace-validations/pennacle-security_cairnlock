@@ -19,13 +19,13 @@ network requests.
 Python 3.11 or newer.
 
 ```bash
-pipx install git+https://github.com/pennacle-security/cairnlock.git@v0.1.0
+pipx install git+https://github.com/pennacle-security/cairnlock.git@v0.2.0
 ```
 
 Or with pip:
 
 ```bash
-pip install git+https://github.com/pennacle-security/cairnlock.git@v0.1.0
+pip install git+https://github.com/pennacle-security/cairnlock.git@v0.2.0
 ```
 
 ## Quick start
@@ -50,6 +50,13 @@ cairnlock approve AGENTS.md
 Example scan output:
 
 ```
+  ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+  █  ▄▀█ █▄ █ █▀▄ █░█ █▀▀ █▀█ █░█ █▀▀ ▀█▀ ▄▀█ █▀▄▀█ ▄▀█ █▄ █ ▀░
+  █  █▀█ █ ▀█ █▄▀ █▄█ █▄▄ █▀▄ █▄█ ██▄ ░█░ █▀█ █░▀░█ █▀█ █ ▀█ █░
+  █▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+  cairnlock v0.2.0 — Static analyzer & lockfile for AI-agent contexts
+  pennacle-security/cairnlock
+
 SKILL.md:9: [REM001] curl piped into a shell (high)
 SKILL.md:13: [REM001] long base64 blob (possible encoded payload) (high)
 SKILL.md:16: [REM001] git clone from a remote URL (medium)
@@ -83,10 +90,22 @@ Files over 1 MB are skipped. Hidden directories (`.git`, `.venv`, `node_modules`
 | REM001 | remote-download | SKILL.md, files under `skills/` | high/med | Pipe-to-shell, base64 payloads, remote fetches |
 | MCP001 | mcp-auto-approve | MCP JSON configs | high | Auto-approve or permission-skipping flags |
 | MCP002 | mcp-fs-root | MCP JSON configs | medium | Filesystem server mounted at root path |
+| MCP003 | mcp-unpinned-cmd | MCP JSON configs | medium | Unpinned dangerous command (npx, uvx, docker, etc.) |
+| MCP004 | mcp-sensitive-env | MCP JSON configs | high | Sensitive environment variable passed to server |
 | UNP001 | unpinned-exec | MCP JSON configs | medium | npx/uvx/bunx packages without version pin |
 | SEC001 | embedded-secrets | all files | high/med | Embedded API keys, tokens, passwords |
+| SHC001 | shell-commands | code and config files | high/med | Shell command execution (eval, exec, subprocess) |
+| NET001 | network-exfil | code and config files | high/med | Suspicious network/exfiltration patterns |
+| FSY001 | filesystem-access | code and config files | high/med | Path traversal, sensitive files, archive extraction |
+| ENV001 | env-manipulation | code and config files | high/med | Environment variable manipulation, credential access |
+| PRI001 | privilege-escalation | code and config files | high/med | Privilege escalation, process injection, container escape |
+| OBF001 | obfuscation | code and config files | high/med/low | Encoding, obfuscation, homoglyphs, compression+encoding |
+| SUP001 | supply-chain | dependency files | high/med/low | Dependency confusion, unpinned deps, post-install scripts |
+| CFG001 | config-injection | config and template files | high/med | Template injection, YAML unsafe tags, hardcoded secrets |
+| TOO001 | tool-injection | tool/function definitions | high/med | Injection risks in tool/function calling schemas |
+| CRY001 | crypto-weakness | code and config files | high/med/low | Weak hashes, ciphers, randomness, hardcoded keys |
 
-Severity mapping: `high` = bidirectional controls, auto-approve, known secret formats; `medium` = zero-width chars, unpinned packages, generic credentials; `low` = soft hyphen.
+Severity mapping: `high` = bidirectional controls, auto-approve, known secret formats, RCE patterns; `medium` = zero-width chars, unpinned packages, generic credentials, supply chain risks; `low` = soft hyphen, good practices.
 
 ## Lockfile workflow
 
@@ -122,9 +141,25 @@ cairnlock scan --format json
 
 # SARIF 2.1.0 for GitHub Code Scanning
 cairnlock scan --format sarif --output results.sarif
+
+# HTML report for sharing
+cairnlock scan --format html --output report.html
+
+# Markdown for PR comments
+cairnlock scan --format markdown
 ```
 
-SARIF output includes rule metadata and GitHub-compatible locations.
+SARIF output includes rule metadata, help URIs, and partial fingerprints for deduplication.
+
+## New CLI commands (v0.2.0)
+
+```bash
+# List all detection rules with metadata
+cairnlock rules --verbose
+
+# Show repository statistics
+cairnlock stats
+```
 
 ## CI integration
 
@@ -145,7 +180,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: pennacle-security/cairnlock@v0.1.0
+      - uses: pennacle-security/cairnlock@v0.2.0
         with:
           output: cairnlock.sarif
           fail: "false"
@@ -160,6 +195,17 @@ Pre-commit hook (blocks commits with unreviewed changes):
 cp hooks/pre-commit .git/hooks/pre-commit
 chmod +x .git/hooks/pre-commit
 ```
+
+## MCP integration
+
+cairnlock includes dedicated MCP security rules (MCP001-004):
+
+- Validates `autoApprove` and permission-skipping flags
+- Detects filesystem servers mounted at root paths
+- Flags unpinned dangerous commands (npx, uvx, docker, kubectl, etc.)
+- Detects sensitive environment variables passed to MCP servers
+
+Run `cairnlock scan` on your `.mcp.json` or `opencode.json` to audit MCP configurations.
 
 ## Limitations
 
