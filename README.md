@@ -12,20 +12,20 @@ usually bypass code review. cairnlock scans them for known risk patterns and
 keeps a lockfile so unreviewed changes fail CI.
 
 cairnlock does not execute, import, or install anything it scans. It makes no
-network requests.
+network requests. Base verification reads from the local git clone only.
 
 ## Install
 
 Python 3.11 or newer.
 
 ```bash
-pipx install git+https://github.com/pennacle-security/cairnlock.git@v0.2.0
+pipx install git+https://github.com/pennacle-security/cairnlock.git@v0.3.0
 ```
 
 Or with pip:
 
 ```bash
-pip install git+https://github.com/pennacle-security/cairnlock.git@v0.2.0
+pip install git+https://github.com/pennacle-security/cairnlock.git@v0.3.0
 ```
 
 ## Quick start
@@ -45,17 +45,20 @@ cairnlock diff
 
 # Approve a changed file (updates its hash in the lockfile)
 cairnlock approve AGENTS.md
+
+# List detection rules and repository statistics
+cairnlock rules --verbose
+cairnlock stats
 ```
 
 Example scan output:
 
 ```
-  ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
-  █  ▄▀█ █▄ █ █▀▄ █░█ █▀▀ █▀█ █░█ █▀▀ ▀█▀ ▄▀█ █▀▄▀█ ▄▀█ █▄ █ ▀░
-  █  █▀█ █ ▀█ █▄▀ █▄█ █▄▄ █▀▄ █▄█ ██▄ ░█░ █▀█ █░▀░█ █▀█ █ ▀█ █░
-  █▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
-  cairnlock v0.2.0 — Static analyzer & lockfile for AI-agent contexts
-  pennacle-security/cairnlock
+  ┌──────────────────────────────────────────────────────────────┐
+  │  ▄▀█ █▄ █ █▀▄ █░█ █▀▀ █▀█ █░█ █▀▀ ▀█▀ ▄▀█ █▀▄▀█ ▄▀█ █▄ █    │
+  │  █▀█ █ ▀█ █▄▀ █▄█ █▄▄ █▀▄ █▄█ ██▄ ░█░ █▀█ █░▀░█ █▀█ █ ▀█    │
+  └──────────────────────────────────────────────────────────────┘
+  cairnlock v0.3.0 — Static analyzer & lockfile for AI-agent contexts
 
 SKILL.md:9: [REM001] curl piped into a shell (high)
 SKILL.md:13: [REM001] long base64 blob (possible encoded payload) (high)
@@ -64,13 +67,57 @@ SKILL.md:16: [REM001] git clone from a remote URL (medium)
 3 findings in 1 files
 ```
 
+## Verify against a base ref
+
+Plain `verify` compares the working tree against the lockfile on disk. That
+can be defeated: a pull request can edit `AGENTS.md` and rehash
+`cairnlock.lock` in the same commit, and verify passes. Base verification
+closes that hole.
+
+```bash
+cairnlock verify --base origin/main
+```
+
+This reads `cairnlock.lock` as it exists at the base ref with `git show`,
+not from the working tree, then compares the working tree against it. If the
+lockfile itself differs from the base version, that is reported as its own
+finding and verify exits 1:
+
+```
+  lockfile modified in this change
+  modified: AGENTS.md
+verify failed: 2 findings vs base 'origin/main'
+```
+
+Pass `--allow-lock-change` when the lockfile change is the whole point of
+the branch. The tracked-file comparison still runs against the base lockfile
+either way.
+
+Exit codes for `verify --base`:
+
+| Exit | Meaning |
+|---|---|
+| 0 | Nothing differs from the base lockfile |
+| 1 | Tracked file changed, added, or deleted; or lockfile differs from base |
+| 2 | Usage or environment error (bad ref, missing base lockfile, shallow clone) |
+
+Notable error messages:
+
+- No lockfile at the base ref: suggests running `cairnlock init` on the base
+  branch first.
+- Shallow clone: suggests setting `fetch-depth: 0` on the checkout step.
+- Ref starting with `-`: rejected before git runs.
+
+All git calls use an argument list, never a shell. cairnlock never makes
+network calls; base verification reads only from the local clone.
+
 ## File discovery
 
 cairnlock scans these files (anywhere in the repo):
 
 | Pattern | Description |
 |---|---|
-| `AGENTS.md` / `CLAUDE.md` | Root agent instructions |
+| `AGENTS.md` / `CLAUDE.md` | Agent instructions |
 | `.cursorrules` | Cursor rules file |
 | `opencode.json` | opencode configuration |
 | `.mcp.json` / `mcp.json` | MCP server configurations |
@@ -79,91 +126,78 @@ cairnlock scans these files (anywhere in the repo):
 | `.claude/**/*.md` `.claude/**/*.json` | Claude Code settings/skills |
 | `skills/**/*.md` `**/SKILL.md` | Skill definitions |
 
-Files over 1 MB are skipped. Hidden directories (`.git`, `.venv`, `node_modules`, etc.) are ignored.
+Files over 1 MB are skipped. `.git`, `.venv`, `node_modules`, and similar
+directories are ignored.
 
 ## Detection rules
 
-| ID | Name | Scope | Severity | Description |
-|---|---|---|---|---|
-| HUC001 | hidden-unicode | all files | high/med/low | Invisible/bidirectional Unicode control characters (Trojan Source) |
-| PIN001 | prompt-injection | JSON `description` fields, SKILL.md frontmatter | high | Prompt-injection phrases in tool/skill descriptions |
-| REM001 | remote-download | SKILL.md, files under `skills/` | high/med | Pipe-to-shell, base64 payloads, remote fetches |
-| MCP001 | mcp-auto-approve | MCP JSON configs | high | Auto-approve or permission-skipping flags |
-| MCP002 | mcp-fs-root | MCP JSON configs | medium | Filesystem server mounted at root path |
-| MCP003 | mcp-unpinned-cmd | MCP JSON configs | medium | Unpinned dangerous command (npx, uvx, docker, etc.) |
-| MCP004 | mcp-sensitive-env | MCP JSON configs | high | Sensitive environment variable passed to server |
-| UNP001 | unpinned-exec | MCP JSON configs | medium | npx/uvx/bunx packages without version pin |
-| SEC001 | embedded-secrets | all files | high/med | Embedded API keys, tokens, passwords |
-| SHC001 | shell-commands | code and config files | high/med | Shell command execution (eval, exec, subprocess) |
-| NET001 | network-exfil | code and config files | high/med | Suspicious network/exfiltration patterns |
-| FSY001 | filesystem-access | code and config files | high/med | Path traversal, sensitive files, archive extraction |
-| ENV001 | env-manipulation | code and config files | high/med | Environment variable manipulation, credential access |
-| PRI001 | privilege-escalation | code and config files | high/med | Privilege escalation, process injection, container escape |
-| OBF001 | obfuscation | code and config files | high/med/low | Encoding, obfuscation, homoglyphs, compression+encoding |
-| SUP001 | supply-chain | dependency files | high/med/low | Dependency confusion, unpinned deps, post-install scripts |
-| CFG001 | config-injection | config and template files | high/med | Template injection, YAML unsafe tags, hardcoded secrets |
-| TOO001 | tool-injection | tool/function definitions | high/med | Injection risks in tool/function calling schemas |
-| CRY001 | crypto-weakness | code and config files | high/med/low | Weak hashes, ciphers, randomness, hardcoded keys |
+Eighteen rules. Full details with anchors live in
+[docs/rules.md](docs/rules.md) and on the [rule reference page](docs/rules.html).
 
-Severity mapping: `high` = bidirectional controls, auto-approve, known secret formats, RCE patterns; `medium` = zero-width chars, unpinned packages, generic credentials, supply chain risks; `low` = soft hyphen, good practices.
+| ID | Check | Severity |
+|---|---|---|
+| HUC001 | invisible or bidirectional Unicode | high/med/low |
+| PIN001 | prompt-injection phrases in descriptions | high |
+| REM001 | pipe-to-shell, base64 blobs, remote downloads in skills | high/med |
+| MCP001 | auto-approve or permission-skipping flags | high |
+| MCP002 | filesystem server at a filesystem root | medium |
+| MCP003 | unpinned dangerous command in MCP config | medium |
+| MCP004 | sensitive env vars passed to an MCP server | high |
+| UNP001 | unpinned npx/uvx/bunx package | medium |
+| SEC001 | embedded credentials (entropy-validated) | high/med |
+| SHC001 | shell command execution patterns | high/med |
+| NET001 | network exfiltration patterns | high/med |
+| FSY001 | path traversal, sensitive files, unsafe archives | high/med |
+| ENV001 | environment variable credential access | high/med |
+| PRI001 | privilege escalation, container escape, injection | high/med |
+| OBF001 | encoding, obfuscation, homoglyphs | high/med/low |
+| SUP001 | supply chain risks in dependencies | high/med/low |
+| CFG001 | template and configuration injection | high/med |
+| TOO001 | tool and function calling injection | high/med |
+| CRY001 | weak cryptography, insecure randomness | high/med/low |
 
 ## Lockfile workflow
 
 `cairnlock.lock` stores SHA-256 hashes of every tracked file.
 
-| Command | Purpose | Exit code |
+| Command | Purpose | Exit codes |
 |---|---|---|
-| `init` | Create lockfile from current state | 0 on success, 1 if exists (use `--force`) |
-| `verify` | Fail if any tracked file changed/added/deleted | 0 if clean, 1 if changes |
-| `diff` | List changes + run rules on modified files | Always 0 |
-| `approve <file>...` | Update hash (or remove entry for deletions) | 0 on success, 1 if unknown |
+| `init` | Create lockfile from current state | 0; 1 if it exists (use `--force`) |
+| `verify` | Fail on unreviewed changes | 0 clean, 1 changes, 2 usage/environment |
+| `diff` | List changes + run rules on modified files | always 0 |
+| `approve <file>...` | Update hash (or remove entry for deletions) | 0; 1 for unknown files |
 
-Typical CI pipeline:
+## Protecting cairnlock.lock
 
-```bash
-# On first run / new repo
-cairnlock init
-git add cairnlock.lock
-git commit -m "chore: add cairnlock lockfile"
+Treat `cairnlock.lock` like a dependency lockfile. Add a CODEOWNERS file so
+changes to it require review from a designated owner:
 
-# On every push/PR
-cairnlock verify || exit 1
 ```
+# .github/CODEOWNERS
+/cairnlock.lock @your-org/security-team
+```
+
+Combined with `cairnlock verify --base origin/main` in CI, a pull request
+cannot silently rewrite which agent files count as approved.
 
 ## Output formats
 
 ```bash
-# Human-readable (default)
-cairnlock scan
-
-# Machine-readable JSON
-cairnlock scan --format json
-
-# SARIF 2.1.0 for GitHub Code Scanning
-cairnlock scan --format sarif --output results.sarif
-
-# HTML report for sharing
-cairnlock scan --format html --output report.html
-
-# Markdown for PR comments
-cairnlock scan --format markdown
+cairnlock scan                          # text (default)
+cairnlock scan --format json            # machine-readable JSON
+cairnlock scan --format sarif --output results.sarif   # GitHub Code Scanning
+cairnlock scan --format html --output report.html      # self-contained page
+cairnlock scan --format md              # markdown for PR comments
+cairnlock scan --severity high          # filter findings
 ```
 
-SARIF output includes rule metadata, help URIs, and partial fingerprints for deduplication.
-
-## New CLI commands (v0.2.0)
-
-```bash
-# List all detection rules with metadata
-cairnlock rules --verbose
-
-# Show repository statistics
-cairnlock stats
-```
+SARIF output includes rule help URIs pointing at docs/rules.md and partial
+fingerprints for result deduplication.
 
 ## CI integration
 
-GitHub Action (composite) for SARIF upload to Code Scanning:
+The repository ships a composite action with marketplace metadata. It
+verifies the lockfile and writes SARIF:
 
 ```yaml
 # .github/workflows/cairnlock.yml
@@ -180,8 +214,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: pennacle-security/cairnlock@v0.2.0
         with:
+          fetch-depth: 0
+      - uses: pennacle-security/cairnlock@v0.3.0
+        with:
+          base-ref: ${{ github.event.pull_request.base.ref }}
           output: cairnlock.sarif
           fail: "false"
       - uses: github/codeql-action/upload-sarif@v3
@@ -189,23 +226,23 @@ jobs:
           sarif_file: cairnlock.sarif
 ```
 
-Pre-commit hook (blocks commits with unreviewed changes):
+Action inputs: `path`, `output`, `fail`, `base-ref`,
+`allow-lock-change`. Use `fetch-depth: 0` when you set `base-ref`; a
+shallow checkout cannot resolve the base ref.
+
+Pre-commit hook:
 
 ```bash
 cp hooks/pre-commit .git/hooks/pre-commit
 chmod +x .git/hooks/pre-commit
 ```
 
-## MCP integration
+## Documentation
 
-cairnlock includes dedicated MCP security rules (MCP001-004):
-
-- Validates `autoApprove` and permission-skipping flags
-- Detects filesystem servers mounted at root paths
-- Flags unpinned dangerous commands (npx, uvx, docker, kubectl, etc.)
-- Detects sensitive environment variables passed to MCP servers
-
-Run `cairnlock scan` on your `.mcp.json` or `opencode.json` to audit MCP configurations.
+The `docs/` directory is a plain HTML site with no build step: a landing
+page, a guide (lockfile workflow, base verification, CODEOWNERS, CI), and
+the full rule reference. Enable GitHub Pages from the main branch with
+`/docs` as the source to publish it.
 
 ## Limitations
 
@@ -219,18 +256,16 @@ Run `cairnlock scan` on your `.mcp.json` or `opencode.json` to audit MCP configu
 ## Development
 
 ```bash
-# Install dev dependencies
 pip install -e ".[dev]"
-
-# Run tests
 pytest -q
-
-# Lint
 ruff check .
-
-# Run locally
 cairnlock scan
 ```
+
+## Security
+
+Report vulnerabilities through GitHub's private vulnerability reporting on
+this repository. See [SECURITY.md](SECURITY.md) for scope.
 
 ## License
 

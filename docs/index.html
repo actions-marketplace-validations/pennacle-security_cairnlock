@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>cairnlock — static analyzer and lockfile for AI-agent context files</title>
+<style>
+  :root { --bg:#0f172a; --panel:#1e293b; --text:#e2e8f0; --muted:#94a3b8; --accent:#22c55e; --line:#334155; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:var(--bg); color:var(--text); line-height:1.6; }
+  a { color:var(--accent); text-decoration:none; }
+  a:hover { text-decoration:underline; }
+  .wrap { max-width:880px; margin:0 auto; padding:2rem 1.5rem; }
+  header { border-bottom:1px solid var(--line); padding:1rem 0; }
+  header .wrap { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; }
+  .brand { font-weight:700; font-size:1.1rem; letter-spacing:0.02em; }
+  nav a { margin-left:1.25rem; color:var(--muted); }
+  nav a:hover { color:var(--text); }
+  h1 { font-size:2rem; margin:2.5rem 0 0.5rem; }
+  h2 { font-size:1.25rem; margin-top:2.5rem; border-bottom:1px solid var(--line); padding-bottom:0.4rem; }
+  p.lede { font-size:1.05rem; color:var(--muted); margin-top:0; }
+  code { background:var(--panel); border:1px solid var(--line); padding:0.1rem 0.4rem; border-radius:4px; font-size:0.9em; }
+  pre { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:1rem; overflow-x:auto; }
+  pre code { background:none; border:none; padding:0; }
+  table { width:100%; border-collapse:collapse; margin:1rem 0; }
+  th, td { text-align:left; padding:0.5rem 0.75rem; border-bottom:1px solid var(--line); }
+  th { color:var(--muted); font-weight:600; font-size:0.85rem; text-transform:uppercase; letter-spacing:0.04em; }
+  .note { background:var(--panel); border-left:3px solid var(--accent); padding:0.75rem 1rem; margin:1rem 0; border-radius:0 6px 6px 0; }
+  footer { border-top:1px solid var(--line); margin-top:3rem; padding:1.5rem 0; color:var(--muted); font-size:0.9rem; }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <span class="brand">cairnlock</span>
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="guide.html">Guide</a>
+      <a href="rules.html">Rules</a>
+      <a href="https://github.com/pennacle-security/cairnlock">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap">
+  <h1>Agent instruction files are executable. Review them like it.</h1>
+  <p class="lede">cairnlock statically audits the files AI agents read and act on,
+  and keeps a lockfile so unreviewed changes fail CI.</p>
+
+  <h2>The problem</h2>
+  <p>AGENTS.md, CLAUDE.md, .cursorrules, MCP configs, and skill folders tell
+  agents what to do. A hidden instruction can steer an agent into running
+  commands, sending data out, or skipping safeguards. These files usually
+  bypass code review, and nothing notices when one changes.</p>
+  <p>cairnlock does two things. First, it scans agent context files for known
+  risk patterns: hidden Unicode, prompt injection phrases, pipe-to-shell
+  downloads, risky MCP server settings, embedded secrets, and more. Second,
+  it maintains <code>cairnlock.lock</code>, a hash manifest of every tracked
+  file, so a pull request that edits an instruction file without review fails
+  the build.</p>
+
+  <div class="note">
+    cairnlock does not execute, import, or install anything it scans. It makes
+    no network requests. Everything runs offline.
+  </div>
+
+  <h2>Install</h2>
+  <p>Python 3.11 or newer.</p>
+  <pre><code>pipx install git+https://github.com/pennacle-security/cairnlock.git@v0.3.0</code></pre>
+
+  <h2>Quick start</h2>
+  <pre><code>cairnlock init      # record hashes of tracked files
+cairnlock scan      # find risk patterns
+cairnlock verify    # fail on unreviewed changes
+cairnlock diff      # show changes plus findings inside them
+cairnlock approve AGENTS.md   # mark a reviewed change</code></pre>
+
+  <p>In CI, compare against the base branch so a pull request is judged only
+  on what it changed:</p>
+  <pre><code>cairnlock verify --base origin/main</code></pre>
+  <p>See the <a href="guide.html">guide</a> for the lockfile workflow, exit
+  codes, and the GitHub Action, or the <a href="rules.html">rule
+  reference</a> for everything the scanner looks for.</p>
+</div>
+
+<footer>
+  <div class="wrap">
+    cairnlock is MIT licensed and maintained by Pennacle Security.
+    The pages here are plain HTML with no build step.
+  </div>
+</footer>
+</body>
+</html>

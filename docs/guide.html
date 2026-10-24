@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>cairnlock — guide</title>
+<style>
+  :root { --bg:#0f172a; --panel:#1e293b; --text:#e2e8f0; --muted:#94a3b8; --accent:#22c55e; --line:#334155; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:var(--bg); color:var(--text); line-height:1.6; }
+  a { color:var(--accent); text-decoration:none; }
+  a:hover { text-decoration:underline; }
+  .wrap { max-width:880px; margin:0 auto; padding:2rem 1.5rem; }
+  header { border-bottom:1px solid var(--line); padding:1rem 0; }
+  header .wrap { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; }
+  .brand { font-weight:700; font-size:1.1rem; letter-spacing:0.02em; }
+  nav a { margin-left:1.25rem; color:var(--muted); }
+  nav a:hover { color:var(--text); }
+  h1 { font-size:1.8rem; margin:2.5rem 0 0.5rem; }
+  h2 { font-size:1.25rem; margin-top:2.5rem; border-bottom:1px solid var(--line); padding-bottom:0.4rem; }
+  code { background:var(--panel); border:1px solid var(--line); padding:0.1rem 0.4rem; border-radius:4px; font-size:0.9em; }
+  pre { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:1rem; overflow-x:auto; }
+  pre code { background:none; border:none; padding:0; }
+  table { width:100%; border-collapse:collapse; margin:1rem 0; }
+  th, td { text-align:left; padding:0.5rem 0.75rem; border-bottom:1px solid var(--line); }
+  th { color:var(--muted); font-weight:600; font-size:0.85rem; text-transform:uppercase; letter-spacing:0.04em; }
+  .note { background:var(--panel); border-left:3px solid var(--accent); padding:0.75rem 1rem; margin:1rem 0; border-radius:0 6px 6px 0; }
+  footer { border-top:1px solid var(--line); margin-top:3rem; padding:1.5rem 0; color:var(--muted); font-size:0.9rem; }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <span class="brand">cairnlock</span>
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="guide.html">Guide</a>
+      <a href="rules.html">Rules</a>
+      <a href="https://github.com/pennacle-security/cairnlock">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap">
+  <h1>Guide</h1>
+  <p class="lede">The lockfile workflow, base-branch verification, and CI setup.</p>
+
+  <h2>Lockfile workflow</h2>
+  <p><code>cairnlock.lock</code> stores a SHA-256 hash for every tracked
+  context file. Commit it. Once it is committed, <code>verify</code> fails on
+  any edit, addition, or deletion that has not been approved.</p>
+  <table>
+    <tr><th>Command</th><th>Purpose</th><th>Exit codes</th></tr>
+    <tr><td><code>init</code></td><td>Create the lockfile from the current tree</td><td>0, or 1 if it exists (use <code>--force</code>)</td></tr>
+    <tr><td><code>verify</code></td><td>Fail on unreviewed changes</td><td>0 clean, 1 changes, 2 usage or environment error</td></tr>
+    <tr><td><code>diff</code></td><td>List changes and run rules inside them</td><td>always 0</td></tr>
+    <tr><td><code>approve <file></code></td><td>Record a reviewed change</td><td>0, or 1 for unknown files</td></tr>
+  </table>
+
+  <h2>Verify against a base ref</h2>
+  <p>A plain <code>verify</code> compares the working tree against the
+  lockfile on disk. That can be defeated: a pull request can edit
+  <code>AGENTS.md</code> and rehash <code>cairnlock.lock</code> in the same
+  commit, and verify passes. Base verification closes that hole.</p>
+  <pre><code>cairnlock verify --base origin/main</code></pre>
+  <p>This reads <code>cairnlock.lock</code> as it exists at the base ref with
+  <code>git show</code>, not from the working tree, then compares the working
+  tree against it. If the lockfile itself differs from the base version, that
+  is reported as its own finding:</p>
+  <pre><code>  lockfile modified in this change
+  modified: AGENTS.md
+verify failed: 2 findings vs base 'origin/main'</code></pre>
+  <p>Pass <code>--allow-lock-change</code> when the lockfile change is the
+  whole point of the branch. The tracked-file comparison still runs against
+  the base lockfile either way.</p>
+  <table>
+    <tr><th>Situation</th><th>Exit code</th></tr>
+    <tr><td>Nothing differs from the base lockfile</td><td>0</td></tr>
+    <tr><td>Tracked file changed, added, or deleted</td><td>1</td></tr>
+    <tr><td>Lockfile differs from base (without <code>--allow-lock-change</code>)</td><td>1</td></tr>
+    <tr><td>No lockfile at the base ref</td><td>2, with a hint to run <code>cairnlock init</code> on the base branch</td></tr>
+    <tr><td>Ref does not resolve, or the clone is shallow</td><td>2; shallow clones get a hint about <code>fetch-depth: 0</code></td></tr>
+    <tr><td>Ref starts with <code>-</code></td><td>2, rejected before git runs</td></tr>
+  </table>
+  <p>All git calls use an argument list, never a shell. cairnlock never makes
+  network calls; base verification only reads from the local clone.</p>
+
+  <h2>Protect the lockfile with CODEOWNERS</h2>
+  <p>Treat <code>cairnlock.lock</code> like a dependency lockfile. Add a
+  CODEOWNERS file so edits to it require review from a designated owner:</p>
+  <pre><code># .github/CODEOWNERS
+/cairnlock.lock @your-org/security-team</code></pre>
+  <p>Combined with <code>verify --base</code> in CI, a pull request cannot
+  silently rewrite which agent files count as approved.</p>
+
+  <h2>GitHub Action</h2>
+  <p>The repository ships a composite action. It verifies the lockfile and
+  writes SARIF for Code Scanning.</p>
+  <pre><code>name: cairnlock
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  security-events: write
+  contents: read
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: pennacle-security/cairnlock@v0.3.0
+        with:
+          base-ref: ${{ github.event.pull_request.base.ref }}
+          output: cairnlock.sarif
+          fail: "false"
+      - uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: cairnlock.sarif
+</code></pre>
+  <div class="note">
+    Use <code>fetch-depth: 0</code> when you set <code>base-ref</code>. A
+    shallow checkout cannot resolve the base ref, and verify exits 2 with a
+    message that says exactly this.
+  </div>
+  <p>Action inputs: <code>path</code>, <code>output</code>,
+  <code>fail</code>, <code>base-ref</code>,
+  <code>allow-lock-change</code>.</p>
+
+  <h2>Pre-commit hook</h2>
+  <pre><code>cp hooks/pre-commit .git/hooks/pre-commit
+chmod +x .git/hooks/pre-commit</code></pre>
+  <p>The hook runs <code>cairnlock verify</code> before every commit.</p>
+
+  <h2>Publishing these docs</h2>
+  <p>The <code>docs/</code> directory is plain HTML with no build step. In the
+  repository settings, enable GitHub Pages from the main branch with the
+  <code>/docs</code> folder as the source to publish it.</p>
+</div>
+
+<footer>
+  <div class="wrap">
+    cairnlock is MIT licensed and maintained by Pennacle Security.
+  </div>
+</footer>
+</body>
+</html>

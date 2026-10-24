@@ -1,5 +1,9 @@
 name: "cairnlock"
-description: "Scan AI-agent context files with cairnlock and write a SARIF report"
+description: "Static analyzer and lockfile for AI-agent context files. Scans AGENTS.md, CLAUDE.md, MCP configs, and skill folders; writes SARIF for Code Scanning."
+branding:
+  icon: "lock"
+  color: "green"
+
 inputs:
   path:
     description: "Repository path to scan"
@@ -10,9 +14,17 @@ inputs:
     required: false
     default: "cairnlock.sarif"
   fail:
-    description: "Fail the step when findings exist (true/false)"
+    description: "Fail the step when scan findings exist (true/false)"
     required: false
     default: "true"
+  base-ref:
+    description: "Git ref to read the base cairnlock.lock from; runs verify --base when set"
+    required: false
+    default: ""
+  allow-lock-change:
+    description: "Do not fail verify when cairnlock.lock itself differs from base-ref (true/false)"
+    required: false
+    default: "false"
 
 runs:
   using: "composite"
@@ -23,10 +35,27 @@ runs:
     - shell: bash
       run: |
         pip install "cairnlock @ git+https://github.com/${{ github.action_repository }}.git@${{ github.action_ref }}"
-    - shell: bash
+    - name: Verify lockfile
+      shell: bash
+      run: |
+        if [ ! -f cairnlock.lock ]; then
+          echo "no cairnlock.lock in this repository; skipping verify (run 'cairnlock init' to adopt)"
+          exit 0
+        fi
+        if [ -n "${{ inputs.base-ref }}" ]; then
+          if [ "${{ inputs.allow-lock-change }}" = "true" ]; then
+            cairnlock verify --base "${{ inputs.base-ref }}" --allow-lock-change
+          else
+            cairnlock verify --base "${{ inputs.base-ref }}"
+          fi
+        else
+          cairnlock verify
+        fi
+    - name: Scan
+      shell: bash
       run: |
         if [ "${{ inputs.fail }}" = "true" ]; then
-          cairnlock scan "${{ inputs.path }}" --format sarif --output "${{ inputs.output }}"
+          cairnlock scan "${{ inputs.path }}" --format sarif --output "${{ inputs.output }}" --no-progress --no-banner
         else
-          cairnlock scan "${{ inputs.path }}" --format sarif --output "${{ inputs.output }}" --no-fail
+          cairnlock scan "${{ inputs.path }}" --format sarif --output "${{ inputs.output }}" --no-fail --no-progress --no-banner
         fi

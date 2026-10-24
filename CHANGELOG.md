@@ -7,6 +7,50 @@ Semantic Versioning 2.0.0.
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-25
+
+### Added
+
+- `cairnlock verify --base <git-ref>`: reads `cairnlock.lock` as it exists at
+  the given ref with `git show` and compares the working tree against it. A
+  pull request that edits a tracked file and rehashes the lockfile in the
+  same change now fails with "lockfile modified in this change".
+- `--allow-lock-change` flag to permit lockfile-only changes.
+- Exit code 2 for usage and environment errors in verify: refs starting with
+  `-` are rejected before git runs, missing base lockfiles suggest running
+  `cairnlock init` on the base branch, and shallow clones get a
+  `fetch-depth: 0` hint for GitHub Actions.
+- All git calls use an argument list, never a shell.
+- `base-ref` and `allow-lock-change` inputs in `action.yml`, with a verify
+  step that skips cleanly when no lockfile exists yet.
+- Marketplace metadata in `action.yml` (name, description, branding).
+- Documentation site in `docs/`: landing page, guide (lockfile workflow,
+  base verification, CODEOWNERS, CI), and a full rule reference. Plain HTML,
+  no build step.
+- `docs/rules.md` as the SARIF helpUri target for every rule id.
+- `SECURITY.md` with reporting instructions and scope.
+- Dependabot config for pip and GitHub Actions.
+- README section recommending CODEOWNERS protection for `cairnlock.lock`.
+
+### Changed
+
+- verify without a lockfile now exits 2 (usage/environment error) instead of 1.
+- CLI status markers are plain text (`OK:`, `error:`, `warning:`) instead of
+  emoji, per the project style rules.
+- SARIF driver version now comes from the package version instead of a
+  hard-coded string.
+- Ruff ignores E501; long regex pattern tables and embedded report templates
+  stay readable without manual line splitting.
+
+### Fixed
+
+- CI lint failures: `ruff check` passed locally on every configuration
+  tested before this release.
+
+[Unreleased]: https://github.com/pennacle-security/cairnlock/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/pennacle-security/cairnlock/compare/v0.2.0...v0.3.0
+[0.2.0]: https://github.com/pennacle-security/cairnlock/releases/tag/v0.2.0
+
 ## [0.2.0] - 2026-10-24
 
 ### Added

@@ -11,7 +11,7 @@ from rich.console import Console
 from rich.progress import BarColumn, Progress, SpinnerColumn, TaskProgressColumn, TextColumn
 from rich.table import Table
 
-from cairnlock import __version__, lockfile
+from cairnlock import __version__, lockfile, vcs
 from cairnlock.ascii_art import get_banner
 from cairnlock.output import render_html, render_json, render_markdown, render_sarif, render_text
 from cairnlock.scanner import discover_files
@@ -82,7 +82,7 @@ def _filter_findings(findings: list, severity: SeverityFilter) -> list:
 
 def _print_summary(findings: list, verbose: bool = False) -> None:
     if not findings:
-        console.print("[green]✓[/green] No findings")
+        console.print("[green]no findings[/green]")
         return
 
     by_severity = {"high": 0, "medium": 0, "low": 0}
@@ -157,7 +157,7 @@ def scan_cmd(
     report = _render(findings, fmt)
     if output is not None:
         output.write_text(report + "\n", encoding="utf-8")
-        console.print(f"[green]✓[/green] Wrote {len(findings)} findings to {output}")
+        console.print(f"[green]OK:[/green] Wrote {len(findings)} findings to {output}")
     else:
         console.print(report)
 
@@ -178,40 +178,121 @@ def init(
     """Record SHA-256 hashes of all tracked agent context files in cairnlock.lock."""
     lock_path = path / lockfile.LOCKFILE_NAME
     if lock_path.exists() and not force:
-        console.print(f"[red]✗[/red] {lockfile.LOCKFILE_NAME} already exists; use --force to overwrite")
+        console.print(f"[red]error:[/red] {lockfile.LOCKFILE_NAME} already exists; use --force to overwrite")
         raise typer.Exit(1)
     files = lockfile.hashes(path)
     if not files:
-        console.print("[yellow]⚠[/yellow] No agent context files found")
+        console.print("[yellow]warning:[/yellow] no agent context files found")
     lockfile.write(path, files)
-    console.print(f"[green]✓[/green] Wrote {lockfile.LOCKFILE_NAME} with {len(files)} files")
+    console.print(f"[green]OK:[/green] Wrote {lockfile.LOCKFILE_NAME} with {len(files)} files")
     if verbose:
         for rel, h in sorted(files.items()):
             console.print(f"  {rel}  [dim]{h[:16]}...[/dim]")
 
 
+def _lock_changed_vs_base(root: Path, base_lock: dict) -> bool:
+    """Compare the working lockfile to the base lockfile semantically."""
+    working = lockfile.load(root)
+    if working is None:
+        return True  # deleted or unreadable in the working tree
+    return (working.get("version"), working.get("files")) != (
+        base_lock.get("version"),
+        base_lock.get("files"),
+    )
+
+
+def _verify_against_base(root: Path, base: str, allow_lock_change: bool) -> None:
+    """Compare the working tree against the lockfile stored at a git ref.
+
+    Exit codes: 0 clean, 1 changes found, 2 usage or environment error.
+    """
+    try:
+        base_text = vcs.read_file_at(root, base, lockfile.LOCKFILE_NAME)
+    except vcs.GitUsageError as exc:
+        console.print(f"[red]error:[/red] {exc}")
+        raise typer.Exit(2) from exc
+    except vcs.GitEnvError as exc:
+        console.print(f"[red]error:[/red] {exc}")
+        raise typer.Exit(2) from exc
+
+    if base_text is None:
+        console.print(
+            f"[red]error:[/red] no {lockfile.LOCKFILE_NAME} at ref '{base}'; "
+            "run 'cairnlock init' on the base branch first"
+        )
+        raise typer.Exit(2)
+
+    base_lock = lockfile.loads(base_text)
+    if base_lock is None:
+        console.print(
+            f"[red]error:[/red] {lockfile.LOCKFILE_NAME} at ref '{base}' is not a valid lockfile"
+        )
+        raise typer.Exit(2)
+
+    current_hashes = lockfile.hashes(root)
+    base_files = base_lock["files"]
+    findings: list[str] = []
+    for rel in sorted(p for p in current_hashes if p in base_files and current_hashes[p] != base_files[p]):
+        findings.append(f"modified: {rel}")
+    for rel in sorted(p for p in current_hashes if p not in base_files):
+        findings.append(f"added: {rel}")
+    for rel in sorted(p for p in base_files if p not in current_hashes):
+        findings.append(f"deleted: {rel}")
+
+    lock_changed = _lock_changed_vs_base(root, base_lock)
+    if lock_changed and not allow_lock_change:
+        findings.insert(0, "lockfile modified in this change")
+
+    if not findings:
+        console.print(f"ok: no changes vs base '{base}'")
+        return
+
+    for line in findings:
+        console.print(f"  {line}")
+    console.print(f"[red]verify failed:[/red] {len(findings)} findings vs base '{base}'")
+    if lock_changed and allow_lock_change:
+        console.print("note: lockfile change allowed by --allow-lock-change")
+    raise typer.Exit(1)
+
+
 @app.command()
 def verify(
     path: Annotated[Path, typer.Argument(exists=True, file_okay=False, help="Repository root.")] = Path("."),
+    base: Annotated[
+        str | None,
+        typer.Option("--base", help="Git ref to read the base cairnlock.lock from."),
+    ] = None,
+    allow_lock_change: Annotated[
+        bool,
+        typer.Option(
+            "--allow-lock-change",
+            help="Do not fail when cairnlock.lock itself differs from --base.",
+        ),
+    ] = False,
     verbose: Annotated[bool, typer.Option("--verbose", "-v", help="Verbose output.")] = False,
 ) -> None:
-    """Fail if any tracked file changed, was added, or deleted since last init."""
+    """Fail if tracked files changed without approval, or differ from --base.
+
+    Exit codes: 0 clean, 1 changes found, 2 usage or environment error.
+    """
+    if base is not None:
+        _verify_against_base(path, base, allow_lock_change)
+        return
     lock = lockfile.load(path)
     if lock is None:
-        console.print(f"[red]✗[/red] No {lockfile.LOCKFILE_NAME}; run 'cairnlock init' first")
-        raise typer.Exit(1)
+        console.print(f"[red]error:[/red] no {lockfile.LOCKFILE_NAME}; run 'cairnlock init' first")
+        raise typer.Exit(2)
     changes = lockfile.changes(path, lock)
     tracked = len(lock.get("files", {}))
     if not any(changes.values()):
-        console.print(f"[green]✓[/green] OK: {tracked} files unchanged")
+        console.print(f"ok: {tracked} files unchanged")
         return
     for kind in ("modified", "added", "deleted"):
         for rel in changes[kind]:
-            icon = {"modified": "📝", "added": "➕", "deleted": "🗑️"}[kind]
-            console.print(f"  {icon} {kind}: {rel}")
+            console.print(f"  {kind}: {rel}")
     total = sum(len(v) for v in changes.values())
-    console.print(f"[red]✗[/red] Verify failed: {total} changed files")
-    console.print("Review with 'cairnlock diff', then approve with 'cairnlock approve <file>'")
+    console.print(f"[red]verify failed:[/red] {total} changed files")
+    console.print("review with 'cairnlock diff', then approve with 'cairnlock approve <file>'")
     raise typer.Exit(1)
 
 
@@ -223,20 +304,19 @@ def diff(
     """Show changes against the lockfile, with findings inside changed files."""
     lock = lockfile.load(path)
     if lock is None:
-        console.print(f"[red]✗[/red] No {lockfile.LOCKFILE_NAME}; run 'cairnlock init' first")
+        console.print(f"[red]error:[/red] no {lockfile.LOCKFILE_NAME}; run 'cairnlock init' first")
         raise typer.Exit(1)
     changes = lockfile.changes(path, lock)
     if not any(changes.values()):
-        console.print("[green]✓[/green] No changes")
+        console.print("ok: no changes")
         return
     changed = [rel for kind in ("modified", "added") for rel in changes[kind]]
     findings = lockfile.diff_findings(path, changed)
     for kind in ("modified", "added", "deleted"):
         for rel in changes[kind]:
             count = sum(1 for f in findings if f.path == rel)
-            icon = {"modified": "📝", "added": "➕", "deleted": "🗑️"}[kind]
             suffix = f" ({count} finding{'s' if count != 1 else ''})" if kind != "deleted" else ""
-            console.print(f"  {icon} {kind}: {rel}{suffix}")
+            console.print(f"  {kind}: {rel}{suffix}")
     if findings:
         console.print()
         _print_summary(findings, verbose=verbose)
@@ -252,12 +332,12 @@ def approve(
     try:
         approved, unknown = lockfile.approve(root, paths)
     except FileNotFoundError as e:
-        console.print(f"[red]✗[/red] {e}")
+        console.print(f"[red]error:[/red] {e}")
         raise typer.Exit(1) from e
     for rel in approved:
-        console.print(f"[green]✓[/green] Approved: {rel}")
+        console.print(f"[green]OK:[/green] Approved: {rel}")
     for unk in unknown:
-        console.print(f"[yellow]⚠[/yellow] Not tracked or missing: {unk}")
+        console.print(f"[yellow]warning:[/yellow] not tracked or missing: {unk}")
     if unknown:
         raise typer.Exit(1)
 

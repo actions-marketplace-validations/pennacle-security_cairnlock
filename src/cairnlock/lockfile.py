@@ -31,18 +31,27 @@ def write(root: Path, files: dict[str, str]) -> None:
     )
 
 
+def loads(text: str) -> dict | None:
+    """Parse lockfile content from a string; return None if invalid."""
+    try:
+        data = json.loads(text)
+    except (json.JSONDecodeError, ValueError):
+        return None
+    if not isinstance(data, dict) or not isinstance(data.get("files"), dict):
+        return None
+    return data
+
+
 def load(root: Path) -> dict | None:
     """Load and validate cairnlock.lock; return None if missing/invalid."""
     p = root / LOCKFILE_NAME
     if not p.is_file():
         return None
     try:
-        data = json.loads(p.read_text(encoding="utf-8"))
-    except (json.JSONDecodeError, OSError):
+        text = p.read_text(encoding="utf-8")
+    except (json.JSONDecodeError, OSError, UnicodeDecodeError):
         return None
-    if not isinstance(data, dict) or not isinstance(data.get("files"), dict):
-        return None
-    return data
+    return loads(text)
 
 
 def changes(root: Path, lock: dict) -> dict[str, list[str]]:

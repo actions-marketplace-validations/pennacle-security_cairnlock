@@ -1,20 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
-  <defs>
-    <linearGradient id="stoneGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#4A5568"/>
-      <stop offset="100%" style="stop-color:#2D3748"/>
-    </linearGradient>
-    <linearGradient id="capstoneGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#38A169"/>
-      <stop offset="100%" style="stop-color:#276749"/>
-    </linearGradient>
-  </defs>
-
-  <path d="M26 80 q0 11.5 23.5 11.5 23.5 0 23.5-11.5 0-11.5-23.5-11.5-23.5 0-23.5 11.5Z" fill="url(#stoneGradient)"/>
-  <path d="M34 55 q0 10.75 30 10.75 30 0 30-10.75 0-10.75-30-10.75-30 0-30 10.75Z" fill="url(#stoneGradient)"/>
-  <path d="M42 32 q0 10 22 10 22 0 22-10 0-10-22-10-22 0-22 10Z" fill="url(#capstoneGradient)"/>
-  <path d="M55 24 q0 -5 8.75 -5 8.75 0 8.75 5 v3.75 h-17.5 v-3.75Z" fill="none" stroke="#F7FAFC" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-  <circle cx="64" cy="63" r="4" fill="#F7FAFC"/>
-  <path d="M60 66 h8 v8 h-8Z" fill="#F7FAFC"/>
-  <circle cx="64" cy="70" r="1" fill="#2D3748"/>
+  <rect x="0" y="0" width="128" height="128" rx="24" fill="#0F172A"/>
+  <rect x="4" y="4" width="120" height="120" rx="20" fill="none" stroke="#1E293B" stroke-width="2"/>
+  <rect x="29" y="88" width="70" height="21" rx="10.5" fill="#94A3B8"/>
+  <rect x="36.5" y="62" width="55" height="20" rx="10" fill="#CBD5E1"/>
+  <circle cx="64" cy="69.5" r="4.25" fill="#0F172A"/>
+  <path d="M59.75 72.25 L68.25 72.25 L70.25 79 L57.75 79 Z" fill="#0F172A"/>
+  <rect x="46.5" y="39" width="35" height="18" rx="9" fill="#22C55E"/>
+  <rect x="52.5" y="44" width="23" height="2" rx="1" fill="#16A34A" opacity="0.55"/>
 </svg>
