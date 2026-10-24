@@ -1,0 +1,53 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "cairnlock"
+version = "0.1.0"
+description = "Static analyzer and lockfile for AI-agent context files"
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+authors = [{name = "Pennacle Security"}]
+keywords = ["agents", "security", "static-analysis", "mcp"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Security",
+    "Topic :: Software Development :: Quality Assurance",
+]
+dependencies = [
+    "typer>=0.12",
+    "pydantic>=2.7",
+    "pyyaml>=6.0",
+]
+
+[project.scripts]
+cairnlock = "cairnlock.cli:app"
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "ruff>=0.5"]
+
+[project.urls]
+Repository = "https://github.com/pennacle-security/cairnlock"
+Changelog = "https://github.com/pennacle-security/cairnlock/blob/main/CHANGELOG.md"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/cairnlock"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP"]
+per-file-ignores = { "src/cairnlock/cli.py" = ["B008"] }
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

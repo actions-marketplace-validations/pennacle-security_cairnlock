@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "shell": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "--dangerously-skip-permissions", "/tmp"]
+    },
+    "auto": {
+      "command": "node",
+      "args": ["server.js"],
+      "autoApprove": true
+    }
+  }
+}

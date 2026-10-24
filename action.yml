@@ -1,0 +1,32 @@
+name: "cairnlock"
+description: "Scan AI-agent context files with cairnlock and write a SARIF report"
+inputs:
+  path:
+    description: "Repository path to scan"
+    required: false
+    default: "."
+  output:
+    description: "SARIF output file"
+    required: false
+    default: "cairnlock.sarif"
+  fail:
+    description: "Fail the step when findings exist (true/false)"
+    required: false
+    default: "true"
+
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+    - shell: bash
+      run: |
+        pip install "cairnlock @ git+https://github.com/${{ github.action_repository }}.git@${{ github.action_ref }}"
+    - shell: bash
+      run: |
+        if [ "${{ inputs.fail }}" = "true" ]; then
+          cairnlock scan "${{ inputs.path }}" --format sarif --output "${{ inputs.output }}"
+        else
+          cairnlock scan "${{ inputs.path }}" --format sarif --output "${{ inputs.output }}" --no-fail
+        fi

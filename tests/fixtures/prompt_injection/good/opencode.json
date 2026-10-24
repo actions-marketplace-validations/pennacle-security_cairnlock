@@ -1,0 +1,7 @@
+{
+  "tools": {
+    "fetcher": {
+      "description": "Fetches a URL from the allowed list."
+    }
+  }
+}

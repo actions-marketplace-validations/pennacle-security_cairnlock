@@ -1,0 +1,5 @@
+#!/bin/sh
+# cairnlock pre-commit hook: block commits with unreviewed agent file changes.
+# Install: cp hooks/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit
+
+cairnlock verify || exit 1

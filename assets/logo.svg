@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Bottom stone -->
+  <path d="M106 320 q0 46 94 46 94 0 94-46 0-46-94-46-94 0-94 46Z" fill="#52606D"/>
+  <!-- Middle stone -->
+  <path d="M136 222 q0 43 120 43 120 0 120-43 0-43-120-43-120 0-120 43Z" fill="#3E4C59"/>
+  <!-- Capstone (accent) -->
+  <path d="M171 128 q0 40 85 40 85 0 85-40 0-40-85-40-85 0-85 40Z" fill="#2DA44E"/>
+  <!-- Keyhole on middle stone -->
+  <circle cx="256" cy="252" r="15" fill="#F5F7FA"/>
+  <path d="M241 262 L271 262 L279 292 L233 292 Z" fill="#F5F7FA"/>
+</svg>
