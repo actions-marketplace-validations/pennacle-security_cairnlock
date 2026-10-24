@@ -15,16 +15,20 @@ RULE_ID_002 = "MCP002"
 RULE_ID_003 = "MCP003"
 RULE_ID_004 = "MCP004"
 
+RULE_IDS = ("MCP001", "MCP002", "MCP003", "MCP004")
+
 _AUTO_APPROVE_FLAGS = {
     "--auto-approve", "--yolo", "--dangerously-skip-permissions",
     "--dangerously", "--no-verify", "--insecure", "--allow-all",
     "--disable-auth", "--no-auth", "--trust-all",
 }
 
-_DANGEROUS_COMMANDS = {
-    "npx", "uvx", "bunx", "pnpm", "yarn", "pipx",
-    "docker", "podman", "kubectl", "helm",
-    "curl", "wget", "powershell", "pwsh", "bash", "sh",
+# Shell and infrastructure commands are risky as MCP servers regardless of
+# arguments. Package runners (npx, uvx, bunx, pnpm, yarn, pipx) are handled
+# by UNP001 so one issue yields one finding.
+_INFRA_COMMANDS = {
+    "bash", "sh", "zsh", "fish", "powershell", "pwsh", "cmd",
+    "curl", "wget", "docker", "podman", "kubectl", "helm",
 }
 
 _SENSITIVE_ENVS = {
@@ -76,15 +80,9 @@ def check(rel_path: str, text: str) -> list[Finding]:
                         findings.append(Finding(rule_id=RULE_ID_002, severity="medium", path=rel_path, line=0, message=f'filesystem server "{name}" mounted at root: {arg}'))
                         break
 
-        # MCP003: dangerous command without version pin
-        if cmd in _DANGEROUS_COMMANDS and isinstance(args, list):
-            pkg = None
-            for a in args:
-                if isinstance(a, str) and not a.startswith("-"):
-                    pkg = a
-                    break
-            if pkg and "@" not in pkg and "==" not in pkg and pkg != "latest":
-                findings.append(Finding(rule_id=RULE_ID_003, severity="medium", path=rel_path, line=0, message=f'server "{name}" uses unpinned {cmd} package: {pkg}'))
+        # MCP003: shell or infrastructure command as the server executable
+        if isinstance(cmd, str) and cmd in _INFRA_COMMANDS:
+            findings.append(Finding(rule_id=RULE_ID_003, severity="medium", path=rel_path, line=0, message=f'server "{name}" runs infrastructure command: {cmd}'))
 
         # MCP004: sensitive environment variables passed to server
         env = cfg.get("env", {})

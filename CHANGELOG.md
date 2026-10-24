@@ -7,7 +7,52 @@ Semantic Versioning 2.0.0.
 
 ## [Unreleased]
 
-## [0.4.0] - 2026-10-25
+## [0.5.0] - 2026-10-25
+
+### Added
+
+- Rule profiles, per the approved rules audit:
+  - `core` (default): agent-specific rules on agent context files.
+  - `extended`: generic rules plus widened discovery for source files
+    (`.py`, `.js`, `.ts`) and dependency files (`requirements*`,
+    `package.json`, `pyproject.toml`, `setup.py`, `setup.cfg`).
+  - `scan --profile {core,extended}`, `profile` key in `cairnlock.toml` and
+    `[tool.cairnlock]`, and a `profile` input in `action.yml`.
+  - Profiles are exclusive; every rule id belongs to exactly one profile
+    and rule ids are unchanged.
+- Anti-false-positive mechanisms:
+  - Inline suppression: `cairnlock:ignore` (all rules) or
+    `cairnlock:ignore RULE1,RULE2` (selected rules) anywhere in a line.
+  - All scans deduplicate findings with identical rule, path, line, and
+    message, so one issue yields one finding.
+- Anti-false-negative mechanisms:
+  - SUP001 reads requirements files line by line; bare requirement names
+    are flagged. The old pattern searched for the literal text
+    "requirements.txt" inside lines and never matched real files.
+  - Extended-profile discovery brings code and dependency files to the
+    generic rules.
+- Tests for per-profile finding counts, cross-profile exclusivity,
+  duplicate detection, inline suppression, and discovery behavior.
+
+### Changed
+
+- MCP003 now flags shell and infrastructure commands as the MCP server
+  executable (bash, sh, powershell, curl, wget, docker, podman, kubectl,
+  helm) and no longer duplicates UNP001 on package runners. UNP001 covers
+  npx, uvx, bunx, pnpm, yarn, and pipx, including `dlx`/`run` subcommands,
+  so `pnpm dlx some-server` reports `some-server` instead of `dlx`.
+- OBF001 no longer scans skill files (REM001's scope); the duplicated
+  long-base64 finding is gone.
+- CFG001 no longer scans markdown and text files, and its hardcoded-secret
+  pattern was removed (SEC001 owns credentials); template prose no longer
+  triggers findings.
+- CRY001 hardcoded-key detection requires crypto-specific names
+  (`secret_key`, `encryption_key`, `private_key`, `iv`, `nonce`, `salt`);
+  plain `key =` assignments no longer duplicate SEC001.
+- `cairnlock rules` shows a Profile column and per-rule scope.
+
+[Unreleased]: https://github.com/pennacle-security/cairnlock/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/pennacle-security/cairnlock/compare/v0.4.0...v0.5.0
 
 ### Added
 
@@ -44,7 +89,6 @@ Semantic Versioning 2.0.0.
   the git+https install stays as a fallback.
 - Action description shortened below the 125-character marketplace limit.
 
-[Unreleased]: https://github.com/pennacle-security/cairnlock/compare/v0.4.0...HEAD
 [0.4.0]: https://github.com/pennacle-security/cairnlock/compare/v0.3.0...v0.4.0
 
 ### Added

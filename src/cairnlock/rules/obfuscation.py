@@ -12,6 +12,8 @@ from cairnlock.models import Finding
 
 RULE_ID = "OBF001"
 
+RULE_IDS = ("OBF001",)
+
 _PATTERNS = [
     # Base64 encoding/decoding
     (r"\bbase64\.(b64encode|b64decode|standard_b64encode|standard_b64decode)\s*\(", "Base64 encode/decode - verify purpose", "medium"),
@@ -55,6 +57,9 @@ _COMPILED = [(re.compile(rx, re.IGNORECASE), msg, sev) for rx, msg, sev in _PATT
 
 
 def applies_to(rel_path: str) -> bool:
+    name = rel_path.rsplit("/", 1)[-1]
+    if name == "SKILL.md" or "skills" in rel_path.split("/")[:-1]:
+        return False  # REM001 owns skill files; avoids duplicate base64 findings
     return rel_path.endswith((".py", ".js", ".ts", ".go", ".rs", ".java", ".kt", ".sh", ".bash", ".ps1", ".md", ".txt", ".json", ".yaml", ".yml"))
 
 

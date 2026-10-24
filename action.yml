@@ -21,6 +21,10 @@ inputs:
     description: "Severity threshold for failing: low, medium, high, or never"
     required: false
     default: "low"
+  profile:
+    description: "Rule set: core (agent files, default) or extended (adds source and dependency files)"
+    required: false
+    default: "core"
   base-ref:
     description: "Git ref to read the base cairnlock.lock from; runs verify --base when set"
     required: false
@@ -59,9 +63,9 @@ runs:
       shell: bash
       run: |
         if [ "${{ inputs.fail }}" = "true" ]; then
-          cairnlock scan "${{ inputs.path }}" --format sarif --output "${{ inputs.output }}" \
+          cairnlock scan "${{ inputs.path }}" --profile "${{ inputs.profile }}" --format sarif --output "${{ inputs.output }}" \
             --fail-on "${{ inputs.fail-on }}" --no-progress --no-banner
         else
-          cairnlock scan "${{ inputs.path }}" --format sarif --output "${{ inputs.output }}" \
+          cairnlock scan "${{ inputs.path }}" --profile "${{ inputs.profile }}" --format sarif --output "${{ inputs.output }}" \
             --fail-on "${{ inputs.fail-on }}" --no-fail --no-progress --no-banner
         fi

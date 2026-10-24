@@ -12,6 +12,8 @@ from cairnlock.models import Finding
 
 RULE_ID = "SUP001"
 
+RULE_IDS = ("SUP001",)
+
 _PATTERNS = [
     # Dependency confusion / typosquatting
     (r"(?:pip|npm|yarn|pnpm)\s+install\s+.*@[\d.]+", "Pinned version install - good practice", "low"),
@@ -48,8 +50,15 @@ _PATTERNS = [
 
 _COMPILED = [(re.compile(rx, re.IGNORECASE), msg, sev) for rx, msg, sev in _PATTERNS]
 
+# A bare requirement line: package name with optional extras, no pin.
+# Comments, options (-r, --index-url), and pinned lines do not match.
+_BARE_REQUIREMENT = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._]*(\[[\w,.-]+\])?\s*$")
+
 
 def applies_to(rel_path: str) -> bool:
+    name = rel_path.rsplit("/", 1)[-1]
+    if name == "SKILL.md" or "skills" in rel_path.split("/")[:-1]:
+        return False  # REM001 owns remote-install findings in skill files
     return rel_path.endswith((".txt", ".json", ".toml", ".yaml", ".yml", ".lock", ".md"))
 
 
@@ -68,4 +77,21 @@ def check(rel_path: str, text: str) -> list[Finding]:
                     )
                 )
                 break
+
+    name = rel_path.rsplit("/", 1)[-1]
+    if name.startswith("requirements") and name.endswith(".txt"):
+        for lineno, line in enumerate(text.splitlines(), start=1):
+            stripped = line.strip()
+            if not stripped or stripped.startswith(("#", "-")):
+                continue
+            if _BARE_REQUIREMENT.match(stripped):
+                findings.append(
+                    Finding(
+                        rule_id=RULE_ID,
+                        severity="medium",
+                        path=rel_path,
+                        line=lineno,
+                        message=f"unpinned requirement: {stripped}",
+                    )
+                )
     return findings

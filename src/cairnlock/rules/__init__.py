@@ -47,9 +47,9 @@ RULE_META = {
     "REM001": "remote download or pipe-to-shell in a skill file",
     "MCP001": "auto-approve or permission-skipping flag in an MCP config",
     "MCP002": "MCP filesystem server mounted at a filesystem root",
-    "MCP003": "MCP server with unpinned dangerous command",
+    "MCP003": "MCP server runs a shell or infrastructure command",
     "MCP004": "MCP server passed sensitive environment variable",
-    "UNP001": "npx or uvx package without a version pin",
+    "UNP001": "package-runner package without a version pin",
     "SEC001": "possible embedded credential",
     "SHC001": "shell command execution pattern",
     "NET001": "suspicious network or data exfiltration pattern",
@@ -62,3 +62,28 @@ RULE_META = {
     "TOO001": "tool or function calling injection",
     "CRY001": "cryptographic weakness or insecure randomness",
 }
+
+# Profiles are exclusive: exactly one runs per scan. core covers agent
+# context files; extended covers source and dependency files.
+PROFILE_RULES = {
+    "core": {
+        "HUC001", "PIN001", "REM001",
+        "MCP001", "MCP002", "MCP003", "MCP004",
+        "UNP001", "TOO001",
+    },
+    "extended": {
+        "SEC001", "SHC001", "NET001", "FSY001", "ENV001",
+        "PRI001", "OBF001", "SUP001", "CFG001", "CRY001",
+    },
+}
+
+PROFILE_NAMES = ("core", "extended")
+
+
+def rule_ids(rule) -> set[str]:
+    """Return the rule ids a module can emit."""
+    ids = getattr(rule, "RULE_IDS", None)
+    if ids:
+        return set(ids)
+    rid = getattr(rule, "RULE_ID", None)
+    return {rid} if rid else set()

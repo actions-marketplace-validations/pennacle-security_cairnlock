@@ -13,6 +13,14 @@ from cairnlock.models import Finding
 
 RULE_ID = "UNP001"
 
+RULE_IDS = ("UNP001",)
+
+# Package-runner commands whose first non-flag argument is the package.
+RUNNERS = ("npx", "uvx", "bunx", "pnpm", "yarn", "pipx")
+
+# Subcommands that precede the package name and must not be flagged as one.
+_SUBCOMMANDS = {"dlx", "exec", "run", "x", "add"}
+
 # Match a package spec with a version pin: pkg@version, @scope/pkg@version, or pkg==version
 _PINNED_RE = re.compile(r"(?:@[^/]+/)?[^@/]+@.+|^[^@/]+==.+$")
 
@@ -27,10 +35,15 @@ def _is_pinned(pkg: str) -> tuple[bool, bool]:
 
 
 def _first_package(args: list) -> str | None:
-    """Return first non-flag argument (the package name)."""
+    """Return the package argument, skipping runner subcommands like dlx."""
+    skipped_subcommand = False
     for a in args:
-        if isinstance(a, str) and not a.startswith("-"):
-            return a
+        if not isinstance(a, str) or a.startswith("-"):
+            continue
+        if not skipped_subcommand and a.lower() in _SUBCOMMANDS:
+            skipped_subcommand = True
+            continue
+        return a
     return None
 
 
@@ -52,7 +65,7 @@ def check(rel_path: str, text: str) -> list[Finding]:
             if not isinstance(cfg, dict):
                 continue
             cmd = cfg.get("command")
-            if cmd not in ("npx", "uvx", "bunx"):
+            if cmd not in RUNNERS:
                 continue
             args = cfg.get("args", [])
             if not isinstance(args, list):

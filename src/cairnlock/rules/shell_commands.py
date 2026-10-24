@@ -12,6 +12,8 @@ from cairnlock.models import Finding
 
 RULE_ID = "SHC001"
 
+RULE_IDS = ("SHC001",)
+
 # Shell command execution patterns with severity
 _PATTERNS = [
     # Direct shell execution

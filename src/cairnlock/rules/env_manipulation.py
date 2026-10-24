@@ -12,6 +12,8 @@ from cairnlock.models import Finding
 
 RULE_ID = "ENV001"
 
+RULE_IDS = ("ENV001",)
+
 _PATTERNS = [
     # Direct credential access
     (r"\bos\.environ\s*\[\s*[\"'](?:AWS|AZURE|GCP|GOOGLE|DATABASE|DB|SECRET|KEY|TOKEN|PASSWORD|API)", "Direct env var access for credentials", "high"),

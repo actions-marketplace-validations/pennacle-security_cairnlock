@@ -11,6 +11,8 @@ from cairnlock.models import Finding
 
 RULE_ID = "HUC001"
 
+RULE_IDS = ("HUC001",)
+
 # display name -> (character, severity)
 # Bidirectional controls are high (Trojan Source); zero-widths are medium/low.
 _CHARS: dict[str, tuple[str, str]] = {

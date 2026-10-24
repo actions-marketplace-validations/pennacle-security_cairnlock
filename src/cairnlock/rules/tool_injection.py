@@ -12,6 +12,8 @@ from cairnlock.models import Finding
 
 RULE_ID = "TOO001"
 
+RULE_IDS = ("TOO001",)
+
 _PATTERNS = [
     # OpenAI function calling
     (r"\"function_call\"\s*:", "OpenAI function_call - verify schema", "medium"),

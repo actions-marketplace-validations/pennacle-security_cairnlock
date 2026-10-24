@@ -12,6 +12,8 @@ from cairnlock.models import Finding
 
 RULE_ID = "CFG001"
 
+RULE_IDS = ("CFG001",)
+
 _PATTERNS = [
     # Template injection
     (r"\{\{.*\}\}", "Double curly braces - template injection risk", "high"),
@@ -35,8 +37,8 @@ _PATTERNS = [
     (r"#\{.*T\(.*\)", "Spring SpEL type access - injection risk", "high"),
     (r"#\{.*@.*\}", "Spring SpEL bean reference - injection risk", "high"),
 
-    # Config file secrets
-    (r"(?:password|secret|key|token|api_key)\s*[:=]\s*[\"'][^\"']{8,}[\"']", "Hardcoded secret in config", "high"),
+    # Config file credentials travel over connection strings; plain
+    # assignments belong to SEC001 so one issue yields one finding.
     (r"(?:jdbc|mongodb|redis|postgres|mysql)://[^:\s]+:[^@\s]+@", "Connection string with credentials", "high"),
 
     # Environment-specific configs

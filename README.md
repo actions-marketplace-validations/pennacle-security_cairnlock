@@ -31,7 +31,7 @@ uvx cairnlock scan
 Fallback, straight from the repository:
 
 ```bash
-pipx install git+https://github.com/pennacle-security/cairnlock.git@v0.4.0
+pipx install git+https://github.com/pennacle-security/cairnlock.git@v0.5.0
 ```
 
 ## Quick start
@@ -64,7 +64,7 @@ Example scan output:
   │  ▄▀█ █▄ █ █▀▄ █░█ █▀▀ █▀█ █░█ █▀▀ ▀█▀ ▄▀█ █▀▄▀█ ▄▀█ █▄ █    │
   │  █▀█ █ ▀█ █▄▀ █▄█ █▄▄ █▀▄ █▄█ ██▄ ░█░ █▀█ █░▀░█ █▀█ █ ▀█    │
   └──────────────────────────────────────────────────────────────┘
-  cairnlock v0.4.0 — Static analyzer & lockfile for AI-agent contexts
+  cairnlock v0.5.0 — Static analyzer & lockfile for AI-agent contexts
 
 SKILL.md:9: [REM001] curl piped into a shell (high)
 SKILL.md:13: [REM001] long base64 blob (possible encoded payload) (high)
@@ -142,30 +142,33 @@ though they are hidden.
 
 ## Detection rules
 
-Eighteen rules. Full details with anchors live in
-[docs/rules.md](docs/rules.md) and on the [rule reference page](docs/rules.html).
+Rules run in one of two exclusive profiles. `core` (default) covers agent
+context files. `extended` swaps in the generic rules and widens discovery
+to source files (`.py`, `.js`, `.ts`) and dependency files (`requirements*`,
+`package.json`, `pyproject.toml`, `setup.py`, `setup.cfg`). Full details in
+[docs/rules.md](docs/rules.md); scope audit in [docs/rules-audit.md](docs/rules-audit.md).
 
-| ID | Check | Severity |
-|---|---|---|
-| HUC001 | invisible or bidirectional Unicode | high/med/low |
-| PIN001 | prompt-injection phrases in descriptions | high |
-| REM001 | pipe-to-shell, base64 blobs, remote downloads in skills | high/med |
-| MCP001 | auto-approve or permission-skipping flags | high |
-| MCP002 | filesystem server at a filesystem root | medium |
-| MCP003 | unpinned dangerous command in MCP config | medium |
-| MCP004 | sensitive env vars passed to an MCP server | high |
-| UNP001 | unpinned npx/uvx/bunx package | medium |
-| SEC001 | embedded credentials (entropy-validated) | high/med |
-| SHC001 | shell command execution patterns | high/med |
-| NET001 | network exfiltration patterns | high/med |
-| FSY001 | path traversal, sensitive files, unsafe archives | high/med |
-| ENV001 | environment variable credential access | high/med |
-| PRI001 | privilege escalation, container escape, injection | high/med |
-| OBF001 | encoding, obfuscation, homoglyphs | high/med/low |
-| SUP001 | supply chain risks in dependencies | high/med/low |
-| CFG001 | template and configuration injection | high/med |
-| TOO001 | tool and function calling injection | high/med |
-| CRY001 | weak cryptography, insecure randomness | high/med/low |
+| ID | Profile | Files it runs on | Severity | Check |
+|---|---|---|---|---|
+| HUC001 | core | all context files | high/med/low | invisible or bidirectional Unicode |
+| PIN001 | core | JSON descriptions, SKILL.md frontmatter | high | prompt-injection phrases |
+| REM001 | core | SKILL.md, skills/ files | high/med | pipe-to-shell, base64 blobs, remote downloads |
+| MCP001 | core | MCP JSON configs | high | auto-approve or permission-skipping flags |
+| MCP002 | core | MCP JSON configs | medium | filesystem server at a filesystem root |
+| MCP003 | core | MCP JSON configs | medium | shell or infrastructure command as the server |
+| MCP004 | core | MCP JSON configs | high | sensitive env vars passed to a server |
+| UNP001 | core | MCP JSON configs | medium | package-runner package without a version pin |
+| TOO001 | core | tool definitions, JSON configs | high/med | tool and function calling injection |
+| SEC001 | extended | all scanned files | high/med | embedded credentials (entropy-validated) |
+| SHC001 | extended | source files | high/med | shell command execution patterns |
+| NET001 | extended | source files | high/med | network exfiltration patterns |
+| FSY001 | extended | source files | high/med | path traversal, sensitive files, unsafe archives |
+| ENV001 | extended | source files | high/med | environment variable credential access |
+| PRI001 | extended | source files | high/med | privilege escalation, container escape, injection |
+| OBF001 | extended | source files (non-skill) | high/med/low | encoding, obfuscation, homoglyphs |
+| SUP001 | extended | dependency files (non-skill) | high/med/low | supply chain risks |
+| CFG001 | extended | structured config files (non-markdown) | high/med | template and configuration injection |
+| CRY001 | extended | source files | high/med/low | weak cryptography, insecure randomness |
 
 ## Lockfile workflow
 
@@ -244,6 +247,23 @@ Known findings are suppressed from the report and from the exit decision.
 Text output prints the suppressed count; JSON, SARIF, HTML, and Markdown
 contain only new findings.
 
+**Inline ignore.** Any line can opt out of specific rules:
+
+```
+api_key = "AKIA..." <!-- cairnlock:ignore SEC001 -->
+os.system("ls")  # cairnlock:ignore SHC001,NET001
+```
+
+`cairnlock:ignore` with no rule ids suppresses every rule for that line;
+with ids, only the listed ones. This works in markdown, code, and config
+alike because the token is matched anywhere in the line.
+
+**Profiles.** `--profile core` (default) scans agent context files with the
+agent-specific rules. `--profile extended` swaps in the generic rules and
+adds source and dependency files to discovery, so supply chain and code
+rules actually see code. The two profiles never overlap, and every scan
+deduplicates findings with the same rule, path, line, and message.
+
 **Banner.** The ASCII banner goes to stderr, so `cairnlock scan --format json`
 and the other machine formats always emit clean, parseable output on stdout.
 
@@ -269,7 +289,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: pennacle-security/cairnlock@v0.4.0
+      - uses: pennacle-security/cairnlock@v0.5.0
         with:
           base-ref: ${{ github.event.pull_request.base.ref }}
           output: cairnlock.sarif

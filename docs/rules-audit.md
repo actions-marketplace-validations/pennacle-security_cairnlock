@@ -1,7 +1,8 @@
 # Rules audit
 
-Step 1 of the rule-profiles task: audit only, no behavior changes. Step 2
-(rule profiles) is described at the bottom and waits for review.
+Step 1 (audit) was reviewed and approved. Step 2 (rule profiles) is now
+implemented; the bottom section records what shipped and what changed
+compared to the original proposal.
 
 ## How to read "actual files"
 
@@ -60,18 +61,39 @@ extensions are currently dead.
    FSY001, ENV001, PRI001, OBF001, SUP001, CFG001, TOO001, CRY001, MCP003,
    and MCP004 have none.
 
-## Proposed profiles (Step 2, not implemented, awaiting approval)
+## Profiles (Step 2, implemented)
 
 - `core` (default): HUC001, PIN001, REM001, MCP001, MCP002, MCP003, MCP004,
-  UNP001, TOO001 — agent-specific rules on the current discovery set.
+  UNP001, TOO001 — agent context files only.
 - `extended`: SEC001, SHC001, NET001, FSY001, ENV001, PRI001, OBF001,
-  SUP001, CFG001, CRY001 — selected with `--profile extended`, together
-  with discovery additions for source and dependency files so these rules
-  see the files they were written for.
-- `SEC001` sits between the two: credential detection in agent files is
-  agent-relevant, but the rule itself is generic. Placed in `extended` by
-  classification; call this out if you want it in `core`.
-- Merge MCP003/UNP001 as described above; keep rule IDs stable.
+  SUP001, CFG001, CRY001 — selected with `--profile extended` or
+  `profile = "extended"` in config. Extended also widens discovery to
+  source files (`.py`, `.js`, `.ts`) and dependency files (`requirements*`,
+  `package.json`, `pyproject.toml`, `setup.py`, `setup.cfg`) so the generic
+  rules see the files they were written for.
+- Profiles are exclusive: one runs per scan. `SEC001` landed in `extended`
+  per classification.
+- MCP003/UNP001 merged as proposed: UNP001 owns package runners (now
+  including pnpm, yarn, pipx, with `dlx`/`run` subcommand handling);
+  MCP003 flags shell and infrastructure commands as the server executable
+  regardless of arguments, which removed both the duplicate findings and
+  the false positives on subcommands like `docker compose`.
 
-No profile code exists yet. Nothing in `src/` changes until Step 2 is
-approved.
+### Accuracy fixes shipped with Step 2
+
+- OBF001 no longer scans skill files (REM001's scope), removing the
+  duplicated long-base64 finding.
+- CFG001 no longer scans markdown and text files; the hardcoded-secret
+  pattern moved out entirely (SEC001 owns credentials), removing template
+  prose false positives.
+- CRY001 hardcoded-key pattern requires crypto-specific names
+  (`secret_key`, `encryption_key`, `private_key`, `iv`, `nonce`, `salt`);
+  a plain `key =` no longer duplicates SEC001 on `api_key` lines.
+- SUP001 now reads requirements files line by line (bare requirement names
+  are flagged), instead of searching for the literal text
+  "requirements.txt" inside lines, which never matched real files.
+- New suppression mechanism: `cairnlock:ignore` on a line suppresses all
+  rules for that line; `cairnlock:ignore RULE1,RULE2` suppresses only the
+  listed rules.
+- All scans deduplicate findings with identical rule, path, line, and
+  message.

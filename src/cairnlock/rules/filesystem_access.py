@@ -12,6 +12,8 @@ from cairnlock.models import Finding
 
 RULE_ID = "FSY001"
 
+RULE_IDS = ("FSY001",)
+
 _PATTERNS = [
     # Dangerous file operations
     (r"\bopen\s*\([^)]*[\"']w[\"']", "File write operation - verify path safety", "medium"),

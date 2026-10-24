@@ -12,6 +12,8 @@ from cairnlock.models import Finding
 
 RULE_ID = "PRI001"
 
+RULE_IDS = ("PRI001",)
+
 _PATTERNS = [
     # Linux privilege escalation
     (r"\bsudo\s+(?:-u|-g)\s+\w+", "sudo with user/group - verify necessity", "medium"),

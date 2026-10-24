@@ -12,6 +12,8 @@ from cairnlock.models import Finding
 
 RULE_ID = "NET001"
 
+RULE_IDS = ("NET001",)
+
 _PATTERNS = [
     # HTTP exfiltration
     (r"\brequests\.(get|post|put|patch|delete)\s*\([^)]*(?:data|json|files)\s*=", "HTTP request with data payload - potential exfiltration", "high"),

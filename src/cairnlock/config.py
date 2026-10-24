@@ -8,7 +8,8 @@ Sources, in precedence order:
    ``ignore`` from either config file).
 
 Keys: ``ignore`` (list of glob patterns), ``disabled_rules`` (list of rule
-ids), ``fail_on`` (``low``, ``medium``, ``high``, or ``never``).
+ids), ``fail_on`` (``low``, ``medium``, ``high``, or ``never``), and
+``profile`` (``core`` or ``extended``).
 """
 
 from __future__ import annotations
@@ -19,6 +20,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 VALID_FAIL_ON = {"low", "medium", "high", "never"}
+VALID_PROFILES = {"core", "extended"}
 
 
 class ConfigError(Exception):
@@ -30,6 +32,7 @@ class ScanConfig:
     ignore: list[str] = field(default_factory=list)
     disabled_rules: list[str] = field(default_factory=list)
     fail_on: str = "low"
+    profile: str = "core"
 
 
 def load_config(root: Path) -> ScanConfig:
@@ -86,6 +89,12 @@ def _from_table(table: dict, source: str | None) -> ScanConfig:
         valid = ", ".join(sorted(VALID_FAIL_ON))
         raise ConfigError(f"config 'fail_on' must be one of: {valid}{where}")
     config.fail_on = fail_on
+
+    profile = table.get("profile", "core")
+    if profile not in VALID_PROFILES:
+        valid = ", ".join(sorted(VALID_PROFILES))
+        raise ConfigError(f"config 'profile' must be one of: {valid}{where}")
+    config.profile = profile
     return config
 
 

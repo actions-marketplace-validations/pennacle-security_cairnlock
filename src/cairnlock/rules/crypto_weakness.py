@@ -12,6 +12,8 @@ from cairnlock.models import Finding
 
 RULE_ID = "CRY001"
 
+RULE_IDS = ("CRY001",)
+
 _PATTERNS = [
     # Weak hashes
     (r"\bhashlib\.(md5|sha1)\s*\(", "Weak hash algorithm (MD5/SHA1)", "high"),
@@ -29,8 +31,13 @@ _PATTERNS = [
     (r"\bsecrets\.", "secrets module - good practice", "low"),
     (r"\bos\.urandom\s*\(", "os.urandom - cryptographically secure", "low"),
 
-    # Hardcoded keys/IVs
-    (r"(?:key|iv|nonce|salt)\s*[:=]\s*[\"'][A-Za-z0-9+/=]{16,}[\"']", "Hardcoded crypto key/IV", "high"),
+    # Hardcoded keys/IVs. Crypto-specific names only: generic `key =` catches
+    # api_key assignments, which SEC001 owns.
+    (
+        r"(?:enc(?:ryption)?[_-]?key|secret[_-]?key|priv(?:ate)?[_-]?key|\biv\b|\bnonce\b|\bsalt\b)\s*[:=]\s*[\"'][A-Za-z0-9+/=]{16,}[\"']",
+        "Hardcoded crypto key/IV",
+        "high",
+    ),
     (r"[\"'][A-Za-z0-9+/=]{32,}[\"']\s*.*(?:aes|encrypt|decrypt)", "Potential hardcoded AES key", "high"),
 
     # RSA weak key sizes

@@ -14,6 +14,8 @@ from cairnlock.models import Finding
 
 RULE_ID = "SEC001"
 
+RULE_IDS = ("SEC001",)
+
 # High-confidence provider patterns
 _PROVIDER_PATTERNS = [
     (re.compile(r"\bsk-[A-Za-z0-9]{20,}\b"), "OpenAI API key", "high"),

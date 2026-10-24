@@ -14,6 +14,8 @@ from cairnlock.models import Finding
 
 RULE_ID = "PIN001"
 
+RULE_IDS = ("PIN001",)
+
 _PATTERNS = [
     re.compile(p, re.IGNORECASE)
     for p in (

@@ -16,6 +16,7 @@ from cairnlock import baseline as baseline_mod
 from cairnlock.ascii_art import get_banner
 from cairnlock.config import ConfigError, is_ignored, load_config
 from cairnlock.output import render_html, render_json, render_markdown, render_sarif, render_text
+from cairnlock.rules import PROFILE_NAMES, PROFILE_RULES
 from cairnlock.scanner import check_file, discover_files
 
 app = typer.Typer(
@@ -137,6 +138,14 @@ def scan_cmd(
         ),
     ] = None,
     severity: Annotated[SeverityFilter, typer.Option("--severity", "-s", help="Report only this severity.")] = SeverityFilter.all,
+    profile: Annotated[
+        str | None,
+        typer.Option(
+            "--profile",
+            help="Rule set: core (agent context files, default) or extended "
+            "(generic rules plus source and dependency files). Overrides cairnlock.toml.",
+        ),
+    ] = None,
     baseline: Annotated[
         Path | None,
         typer.Option("--baseline", help="JSON file of known finding fingerprints; only new findings are reported."),
@@ -155,10 +164,20 @@ def scan_cmd(
         err_console.print(f"[red]error:[/red] {exc}")
         raise typer.Exit(2) from exc
 
-    if verbose:
-        err_console.print(f"Scanning: {path.absolute()}")
+    if profile is not None:
+        if profile not in PROFILE_NAMES:
+            err_console.print(
+                f"[red]error:[/red] --profile must be one of: {', '.join(PROFILE_NAMES)}"
+            )
+            raise typer.Exit(2)
+        config.profile = profile
+    allowed = PROFILE_RULES.get(config.profile)
+    include_code = config.profile == "extended"
 
-    files = list(discover_files(path))
+    if verbose:
+        err_console.print(f"Scanning: {path.absolute()} (profile: {config.profile})")
+
+    files = list(discover_files(path, include_code=include_code))
     if not files:
         console.print("[yellow]No agent context files found[/yellow]")
         return
@@ -186,7 +205,7 @@ def scan_cmd(
                 text = p.read_text(encoding="utf-8", errors="replace")
             except OSError:
                 continue
-            findings.extend(check_file(rel, text, disabled))
+            findings.extend(check_file(rel, text, disabled, allowed))
 
     findings.sort(key=lambda f: (f.path, f.line, f.rule_id))
     findings = _filter_findings(findings, severity)
@@ -411,45 +430,50 @@ def approve(
 def rules(
     verbose: Annotated[bool, typer.Option("--verbose", "-v", help="Show detailed rule info.")] = False,
 ) -> None:
-    """List all detection rules with metadata."""
-    from cairnlock.rules import RULE_META, RULES
+    """List all detection rules with profile and scope."""
+    from cairnlock.rules import RULE_META, RULES, rule_ids
+
+    profile_of: dict[str, str] = {}
+    for name, ids in PROFILE_RULES.items():
+        for rid in ids:
+            profile_of[rid] = name
 
     table = Table(title="Detection Rules", show_header=True, header_style="bold magenta")
     table.add_column("ID", style="bold")
-    table.add_column("Name")
-    table.add_column("Severity")
+    table.add_column("Profile")
     table.add_column("Scope")
+    table.add_column("Description")
     if verbose:
-        table.add_column("Description")
+        table.add_column("Module")
 
     for rule in RULES:
-        rid = getattr(rule, "RULE_ID", getattr(rule, "RULE_ID_001", "?"))
-        name = RULE_META.get(rid, rid)
-        sev = "high"  # default
-        if rid == "MCP002":
-            sev = "medium"
-        elif rid == "UNP001":
-            sev = "medium"
-        elif rid == "HUC001":
-            sev = "high/med/low"
-        elif rid == "SEC001":
-            sev = "high/med"
-
-        scope_map = {
-            "HUC001": "All files",
-            "PIN001": "JSON descriptions, SKILL.md",
-            "REM001": "SKILL.md, skills/",
-            "MCP001": "MCP JSON configs",
-            "MCP002": "MCP JSON configs",
-            "UNP001": "MCP JSON configs",
-            "SEC001": "All files",
-        }
-        scope = scope_map.get(rid, "Various")
-
-        if verbose:
-            table.add_row(rid, name, sev, scope, getattr(rule, "__doc__", "").strip() or "-")
-        else:
-            table.add_row(rid, name, sev, scope)
+        for rid in sorted(rule_ids(rule)):
+            profile = profile_of.get(rid, "?")
+            scope = {
+                "HUC001": "all context files",
+                "PIN001": "JSON descriptions, SKILL.md frontmatter",
+                "REM001": "SKILL.md, skills/ files",
+                "MCP001": "MCP JSON configs",
+                "MCP002": "MCP JSON configs",
+                "MCP003": "MCP JSON configs",
+                "MCP004": "MCP JSON configs",
+                "UNP001": "MCP JSON configs",
+                "SEC001": "all scanned files",
+                "SHC001": "source files (extended)",
+                "NET001": "source files (extended)",
+                "FSY001": "source files (extended)",
+                "ENV001": "source files (extended)",
+                "PRI001": "source files (extended)",
+                "OBF001": "source files, non-skill (extended)",
+                "SUP001": "dependency files (extended)",
+                "CFG001": "config files, non-markdown (extended)",
+                "TOO001": "tool definitions, JSON configs",
+                "CRY001": "source files (extended)",
+            }.get(rid, "varies")
+            if verbose:
+                table.add_row(rid, profile, scope, RULE_META.get(rid, rid), rule.__name__)
+            else:
+                table.add_row(rid, profile, scope, RULE_META.get(rid, rid))
 
     console.print(table)
 

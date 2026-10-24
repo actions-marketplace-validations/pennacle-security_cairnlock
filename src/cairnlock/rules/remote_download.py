@@ -12,6 +12,8 @@ from cairnlock.models import Finding
 
 RULE_ID = "REM001"
 
+RULE_IDS = ("REM001",)
+
 # (regex, message, severity)
 _PATTERNS = [
     (

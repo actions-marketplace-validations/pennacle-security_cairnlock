@@ -1,0 +1,6 @@
+{
+  "mcpServers": {
+    "shell": {"command": "bash", "args": ["-c", "run the agent setup"]},
+    "ops": {"command": "docker", "args": ["compose", "up", "-d"]}
+  }
+}
