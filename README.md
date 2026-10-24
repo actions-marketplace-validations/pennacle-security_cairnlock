@@ -19,13 +19,19 @@ network requests. Base verification reads from the local git clone only.
 Python 3.11 or newer.
 
 ```bash
-pipx install git+https://github.com/pennacle-security/cairnlock.git@v0.3.0
+pipx install cairnlock
 ```
 
-Or with pip:
+Or run it without installing:
 
 ```bash
-pip install git+https://github.com/pennacle-security/cairnlock.git@v0.3.0
+uvx cairnlock scan
+```
+
+Fallback, straight from the repository:
+
+```bash
+pipx install git+https://github.com/pennacle-security/cairnlock.git@v0.4.0
 ```
 
 ## Quick start
@@ -58,7 +64,7 @@ Example scan output:
   │  ▄▀█ █▄ █ █▀▄ █░█ █▀▀ █▀█ █░█ █▀▀ ▀█▀ ▄▀█ █▀▄▀█ ▄▀█ █▄ █    │
   │  █▀█ █ ▀█ █▄▀ █▄█ █▄▄ █▀▄ █▄█ ██▄ ░█░ █▀█ █░▀░█ █▀█ █ ▀█    │
   └──────────────────────────────────────────────────────────────┘
-  cairnlock v0.3.0 — Static analyzer & lockfile for AI-agent contexts
+  cairnlock v0.4.0 — Static analyzer & lockfile for AI-agent contexts
 
 SKILL.md:9: [REM001] curl piped into a shell (high)
 SKILL.md:13: [REM001] long base64 blob (possible encoded payload) (high)
@@ -117,17 +123,22 @@ cairnlock scans these files (anywhere in the repo):
 
 | Pattern | Description |
 |---|---|
-| `AGENTS.md` / `CLAUDE.md` | Agent instructions |
-| `.cursorrules` | Cursor rules file |
+| `AGENTS.md` / `CLAUDE.md` / `GEMINI.md` | Agent instructions |
+| `.cursorrules` / `.windsurfrules` | Cursor and Windsurf rules files |
+| `.clinerules` (file or directory) | Cline rules |
+| `.github/copilot-instructions.md` | Copilot instructions |
 | `opencode.json` | opencode configuration |
 | `.mcp.json` / `mcp.json` | MCP server configurations |
-| `.cursor/rules/**/*.md` | Cursor rule files |
-| `.opencode/**/*.md` `.opencode/**/*.json` | opencode agents/plugins |
-| `.claude/**/*.md` `.claude/**/*.json` | Claude Code settings/skills |
+| `.cursor/mcp.json` / `.vscode/mcp.json` | Editor MCP configurations |
+| `.gemini/settings.json` | Gemini CLI settings |
+| `claude_desktop_config.json` | Claude Desktop configuration |
+| `.cursor/**` `.claude/**` `.opencode/**` | Agent settings, rules, and skills (md/json) |
+| `.roo/**` `.continue/**` | Roo Code and Continue rules (md/json) |
 | `skills/**/*.md` `**/SKILL.md` | Skill definitions |
 
 Files over 1 MB are skipped. `.git`, `.venv`, `node_modules`, and similar
-directories are ignored.
+directories are ignored, while the agent directories above are scanned even
+though they are hidden.
 
 ## Detection rules
 
@@ -194,6 +205,48 @@ cairnlock scan --severity high          # filter findings
 SARIF output includes rule help URIs pointing at docs/rules.md and partial
 fingerprints for result deduplication.
 
+## Noise controls
+
+Large repositories do not need every finding on day one.
+
+**Thresholds.** `scan` exits 1 only when a finding at or above the threshold
+exists. The CLI flag wins over the config file:
+
+```bash
+cairnlock scan --fail-on medium    # low and medium findings pass
+cairnlock scan --fail-on never     # report, never fail
+```
+
+**Config file.** `cairnlock.toml` in the scan root, or `[tool.cairnlock]` in
+`pyproject.toml`:
+
+```toml
+# cairnlock.toml
+fail_on = "medium"
+disabled_rules = ["CFG001"]
+ignore = ["scratch/**", "vendor/**"]
+```
+
+`.cairnlockignore` in the scan root holds gitignore-style globs (comments
+with `#`, one pattern per line). Patterns match full paths and any leading
+directory chain.
+
+**Baseline.** Record today's findings, then fail only on what is new:
+
+```bash
+cairnlock scan --write-baseline cairnlock-baseline.json --no-fail
+git add cairnlock-baseline.json
+# later runs:
+cairnlock scan --baseline cairnlock-baseline.json
+```
+
+Known findings are suppressed from the report and from the exit decision.
+Text output prints the suppressed count; JSON, SARIF, HTML, and Markdown
+contain only new findings.
+
+**Banner.** The ASCII banner goes to stderr, so `cairnlock scan --format json`
+and the other machine formats always emit clean, parseable output on stdout.
+
 ## CI integration
 
 The repository ships a composite action with marketplace metadata. It
@@ -216,7 +269,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: pennacle-security/cairnlock@v0.3.0
+      - uses: pennacle-security/cairnlock@v0.4.0
         with:
           base-ref: ${{ github.event.pull_request.base.ref }}
           output: cairnlock.sarif
@@ -226,7 +279,7 @@ jobs:
           sarif_file: cairnlock.sarif
 ```
 
-Action inputs: `path`, `output`, `fail`, `base-ref`,
+Action inputs: `path`, `output`, `fail`, `fail-on`, `base-ref`,
 `allow-lock-change`. Use `fetch-depth: 0` when you set `base-ref`; a
 shallow checkout cannot resolve the base ref.
 
@@ -242,7 +295,9 @@ chmod +x .git/hooks/pre-commit
 The `docs/` directory is a plain HTML site with no build step: a landing
 page, a guide (lockfile workflow, base verification, CODEOWNERS, CI), and
 the full rule reference. Enable GitHub Pages from the main branch with
-`/docs` as the source to publish it.
+`/docs` as the source to publish it. `docs/rules-audit.md` tracks which
+rules are agent-specific versus generic SAST. `docs/rules-audit.md` tracks which
+rules are agent-specific versus generic SAST.
 
 ## Limitations
 

@@ -7,7 +7,45 @@ Semantic Versioning 2.0.0.
 
 ## [Unreleased]
 
-## [0.3.0] - 2026-10-25
+## [0.4.0] - 2026-10-25
+
+### Added
+
+- Noise controls for adoption on large repositories:
+  - `cairnlock.toml` (or `[tool.cairnlock]` in `pyproject.toml`) with
+    `ignore` globs, `disabled_rules`, and a `fail_on` threshold.
+  - `.cairnlockignore` with gitignore-style globs.
+  - `scan --fail-on {low,medium,high,never}`: exit 1 only when a finding at
+    or above the threshold exists. Exposed as the `fail-on` action input.
+  - `scan --baseline <file>` and `--write-baseline`: known finding
+    fingerprints are suppressed from reports and the exit decision.
+  - The ASCII banner goes to stderr; JSON, SARIF, HTML, and Markdown output
+    on stdout stay parseable. Regression tests cover this with the banner on.
+- Discovery for more agent ecosystems, each with a fixture and a test:
+  `.github/copilot-instructions.md`, `GEMINI.md`, `.windsurfrules`,
+  `.clinerules` (file or directory), `.roo/**`, `.continue/**`,
+  `.cursor/mcp.json`, `.vscode/mcp.json`, `.gemini/settings.json`,
+  `claude_desktop_config.json`. Hidden agent directories (`.claude`,
+  `.opencode`, `.cursor`, `.roo`, `.continue`, `.gemini`, `.vscode`,
+  `.github`) are scanned; `.git`, `.venv`, and `node_modules` stay ignored.
+  Fixes a discovery bug where files directly inside a hidden agent
+  directory were never matched.
+- PyPI packaging: complete project metadata, a release workflow
+  (`.github/workflows/release.yml`) that builds, runs `twine check`, and
+  publishes with PyPI trusted publishing (OIDC), and a version-consistency
+  test between `pyproject.toml` and `cairnlock.__version__`.
+- `docs/rules-audit.md`: rule-by-rule audit of scope, overlaps, and
+  agent-specific versus generic classification, pending review.
+- Redesigned ASCII banner: stacked CAIRN/LOCK block wordmark.
+
+### Changed
+
+- Install docs lead with `pipx install cairnlock` and `uvx cairnlock scan`;
+  the git+https install stays as a fallback.
+- Action description shortened below the 125-character marketplace limit.
+
+[Unreleased]: https://github.com/pennacle-security/cairnlock/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/pennacle-security/cairnlock/compare/v0.3.0...v0.4.0
 
 ### Added
 
@@ -47,7 +85,6 @@ Semantic Versioning 2.0.0.
 - CI lint failures: `ruff check` passed locally on every configuration
   tested before this release.
 
-[Unreleased]: https://github.com/pennacle-security/cairnlock/compare/v0.3.0...HEAD
 [0.3.0]: https://github.com/pennacle-security/cairnlock/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/pennacle-security/cairnlock/releases/tag/v0.2.0
 

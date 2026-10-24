@@ -12,9 +12,11 @@ from rich.progress import BarColumn, Progress, SpinnerColumn, TaskProgressColumn
 from rich.table import Table
 
 from cairnlock import __version__, lockfile, vcs
+from cairnlock import baseline as baseline_mod
 from cairnlock.ascii_art import get_banner
+from cairnlock.config import ConfigError, is_ignored, load_config
 from cairnlock.output import render_html, render_json, render_markdown, render_sarif, render_text
-from cairnlock.scanner import discover_files
+from cairnlock.scanner import check_file, discover_files
 
 app = typer.Typer(
     add_completion=False,
@@ -25,6 +27,9 @@ app = typer.Typer(
 )
 
 console = Console()
+err_console = Console(stderr=True)
+
+SEVERITY_RANK = {"low": 0, "medium": 1, "high": 2}
 
 
 class OutputFormat(StrEnum):
@@ -42,9 +47,16 @@ class SeverityFilter(StrEnum):
     low = "low"
 
 
+class FailOn(StrEnum):
+    low = "low"
+    medium = "medium"
+    high = "high"
+    never = "never"
+
+
 def _version_callback(value: bool) -> None:
     if value:
-        console.print(get_banner(__version__, compact=True))
+        typer.echo(get_banner(__version__, compact=True), err=True)
         raise typer.Exit()
 
 
@@ -59,7 +71,7 @@ def main(
 ) -> None:
     """Static analyzer and lockfile for AI-agent context files."""
     if not no_banner and not quiet and not version:
-        console.print(get_banner(__version__))
+        typer.echo(get_banner(__version__), err=True)
 
 
 def _render(findings: list, fmt: OutputFormat) -> str:
@@ -116,56 +128,109 @@ def scan_cmd(
     fmt: Annotated[OutputFormat, typer.Option("--format", "-f", help="Output format.")] = OutputFormat.text,
     output: Annotated[Path | None, typer.Option("--output", "-o", help="Write report to file.")] = None,
     no_fail: Annotated[bool, typer.Option("--no-fail", help="Exit 0 even when findings exist.")] = False,
-    severity: Annotated[SeverityFilter, typer.Option("--severity", "-s", help="Filter by minimum severity.")] = SeverityFilter.all,
+    fail_on: Annotated[
+        FailOn | None,
+        typer.Option(
+            "--fail-on",
+            help="Exit 1 only when a finding at or above this severity exists. "
+            "Overrides cairnlock.toml.",
+        ),
+    ] = None,
+    severity: Annotated[SeverityFilter, typer.Option("--severity", "-s", help="Report only this severity.")] = SeverityFilter.all,
+    baseline: Annotated[
+        Path | None,
+        typer.Option("--baseline", help="JSON file of known finding fingerprints; only new findings are reported."),
+    ] = None,
+    write_baseline: Annotated[
+        Path | None,
+        typer.Option("--write-baseline", help="Save current finding fingerprints to this file and exit 0."),
+    ] = None,
     verbose: Annotated[bool, typer.Option("--verbose", "-v", help="Verbose output.")] = False,
     show_progress: Annotated[bool, typer.Option("--progress/--no-progress", help="Show progress bar.")] = True,
 ) -> None:
     """Scan agent context files under PATH for risk patterns."""
+    try:
+        config = load_config(path)
+    except ConfigError as exc:
+        err_console.print(f"[red]error:[/red] {exc}")
+        raise typer.Exit(2) from exc
+
     if verbose:
-        console.print(f"[dim]Scanning: {path.absolute()}[/dim]")
+        err_console.print(f"Scanning: {path.absolute()}")
 
     files = list(discover_files(path))
     if not files:
         console.print("[yellow]No agent context files found[/yellow]")
         return
 
+    disabled = set(config.disabled_rules)
+    ignore = config.ignore
     findings: list = []
     with Progress(
         SpinnerColumn(),
         TextColumn("[progress.description]{task.description}"),
         BarColumn(),
         TaskProgressColumn(),
-        console=console,
-        disable=not show_progress or len(files) < 5,
+        console=err_console,
+        disable=not show_progress or fmt is not OutputFormat.text or len(files) < 5,
     ) as progress:
         task = progress.add_task("Scanning files...", total=len(files))
         for p in files:
             rel = p.relative_to(path).as_posix()
+            progress.advance(task)
+            if ignore and is_ignored(rel, ignore):
+                continue
             try:
                 if p.stat().st_size > 1_000_000:
                     continue
                 text = p.read_text(encoding="utf-8", errors="replace")
             except OSError:
                 continue
-            from cairnlock.scanner import check_file
-            findings.extend(check_file(rel, text))
-            progress.advance(task)
+            findings.extend(check_file(rel, text, disabled))
 
     findings.sort(key=lambda f: (f.path, f.line, f.rule_id))
     findings = _filter_findings(findings, severity)
 
+    baseline_fps: set[str] = set()
+    if baseline is not None:
+        try:
+            baseline_fps = baseline_mod.load_baseline(baseline)
+        except ValueError as exc:
+            err_console.print(f"[red]error:[/red] {exc}")
+            raise typer.Exit(2) from exc
+        before = len(findings)
+        findings = [f for f in findings if baseline_mod.fingerprint(f) not in baseline_fps]
+        suppressed = before - len(findings)
+    else:
+        suppressed = 0
+
+    if write_baseline is not None:
+        baseline_mod.write_baseline(write_baseline, findings)
+        err_console.print(
+            f"[green]OK:[/green] Wrote {len(findings)} fingerprints to {write_baseline}"
+        )
+        return
+
     report = _render(findings, fmt)
     if output is not None:
         output.write_text(report + "\n", encoding="utf-8")
-        console.print(f"[green]OK:[/green] Wrote {len(findings)} findings to {output}")
-    else:
+        err_console.print(f"[green]OK:[/green] Wrote {len(findings)} findings to {output}")
+    elif fmt is OutputFormat.text:
         console.print(report)
+    else:
+        typer.echo(report)
 
-    if verbose or fmt == OutputFormat.text:
+    if fmt is OutputFormat.text:
         console.print()
         _print_summary(findings, verbose=verbose)
+        if baseline is not None:
+            console.print(f"suppressed by baseline: {suppressed}")
 
-    if findings and not no_fail:
+    effective_fail_on = fail_on.value if fail_on is not None else config.fail_on
+    if no_fail or effective_fail_on == "never":
+        return
+    threshold = SEVERITY_RANK[effective_fail_on]
+    if any(SEVERITY_RANK.get(f.severity, 0) >= threshold for f in findings):
         raise typer.Exit(1)
 
 

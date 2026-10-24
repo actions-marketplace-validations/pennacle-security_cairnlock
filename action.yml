@@ -1,5 +1,5 @@
 name: "cairnlock"
-description: "Static analyzer and lockfile for AI-agent context files. Scans AGENTS.md, CLAUDE.md, MCP configs, and skill folders; writes SARIF for Code Scanning."
+description: "Static analyzer and lockfile for AI-agent context files. Writes SARIF for GitHub Code Scanning."
 branding:
   icon: "lock"
   color: "green"
@@ -14,9 +14,13 @@ inputs:
     required: false
     default: "cairnlock.sarif"
   fail:
-    description: "Fail the step when scan findings exist (true/false)"
+    description: "Fail the step when findings exceed the threshold (true/false)"
     required: false
     default: "true"
+  fail-on:
+    description: "Severity threshold for failing: low, medium, high, or never"
+    required: false
+    default: "low"
   base-ref:
     description: "Git ref to read the base cairnlock.lock from; runs verify --base when set"
     required: false
@@ -55,7 +59,9 @@ runs:
       shell: bash
       run: |
         if [ "${{ inputs.fail }}" = "true" ]; then
-          cairnlock scan "${{ inputs.path }}" --format sarif --output "${{ inputs.output }}" --no-progress --no-banner
+          cairnlock scan "${{ inputs.path }}" --format sarif --output "${{ inputs.output }}" \
+            --fail-on "${{ inputs.fail-on }}" --no-progress --no-banner
         else
-          cairnlock scan "${{ inputs.path }}" --format sarif --output "${{ inputs.output }}" --no-fail --no-progress --no-banner
+          cairnlock scan "${{ inputs.path }}" --format sarif --output "${{ inputs.output }}" \
+            --fail-on "${{ inputs.fail-on }}" --no-fail --no-progress --no-banner
         fi

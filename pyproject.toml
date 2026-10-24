@@ -4,17 +4,20 @@ build-backend = "hatchling.build"
 
 [project]
 name = "cairnlock"
-version = "0.3.0"
+version = "0.4.0"
 description = "Static analyzer and lockfile for AI-agent context files"
 readme = "README.md"
 requires-python = ">=3.11"
 license = {text = "MIT"}
 authors = [{name = "Pennacle Security"}]
-keywords = ["agents", "security", "static-analysis", "mcp"]
+keywords = ["agents", "security", "static-analysis", "mcp", "llm", "prompt-injection", "claude", "cursor", "agents-md"]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 4 - Beta",
     "Environment :: Console",
     "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Natural Language :: English",
+    "Operating System :: OS Independent",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
@@ -34,11 +37,16 @@ cairnlock = "cairnlock.cli:app"
 dev = ["pytest>=8", "ruff>=0.5"]
 
 [project.urls]
-Repository = "https://github.com/pennacle-security/cairnlock"
+Homepage = "https://github.com/pennacle-security/cairnlock"
+Repository = "https://github.com/pennacle-security/cairnlock.git"
+Issues = "https://github.com/pennacle-security/cairnlock/issues"
 Changelog = "https://github.com/pennacle-security/cairnlock/blob/main/CHANGELOG.md"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/cairnlock"]
+
+[tool.hatch.build.targets.sdist]
+include = ["src", "tests", "docs", "README.md", "CHANGELOG.md", "LICENSE"]
 
 [tool.ruff]
 line-length = 100
