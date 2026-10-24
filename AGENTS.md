@@ -33,4 +33,5 @@ opencode.json, MCP configs, skill folders) and maintains a lockfile
 - `src/cairnlock/rules/` — one module per detection rule
 - `src/cairnlock/lockfile.py` — cairnlock.lock read/write and change detection
 - `src/cairnlock/output.py` — text, JSON, and SARIF renderers
-- `tests/fixtures/<rule>/bad|good/` — one fixture pair per rule
+- `tests/fixtures/<rule>/bad|good/` — one fixture pair per ruleextra line
+extra line

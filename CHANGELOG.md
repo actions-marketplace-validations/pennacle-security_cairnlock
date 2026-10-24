@@ -47,6 +47,3 @@ Semantic Versioning 2.0.0.
 ### Fixed
 - Secret detection false positives on placeholder values
 - Cross-rule false positives in good fixtures
-
-[Unreleased]: https://github.com/pennacle-security/cairnlock/compare/v0.2.0...HEAD
-[0.2.0]: https://github.com/pennacle-security/cairnlock/releases/tag/v0.2.0

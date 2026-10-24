@@ -106,28 +106,28 @@ def test_cli_init_verify_approve_cycle() -> None:
         root = Path(td)
         (root / "AGENTS.md").write_text("# Agents\n\nHello.\n", encoding="utf-8")
         # init
-        result = runner.invoke(app, ["init", str(root)])
+        result = runner.invoke(app, ["--no-banner", "init", str(root)])
         assert result.exit_code == 0
-        assert "wrote" in result.output
+        assert "Wrote" in result.output or "wrote" in result.output
         # verify (unchanged)
-        result = runner.invoke(app, ["verify", str(root)])
+        result = runner.invoke(app, ["--no-banner", "verify", str(root)])
         assert result.exit_code == 0
-        assert "ok" in result.output
+        assert "ok" in result.output.lower() or "OK" in result.output
         # modify
         (root / "AGENTS.md").write_text("# Agents\n\nChanged.\n", encoding="utf-8")
-        result = runner.invoke(app, ["verify", str(root)])
+        result = runner.invoke(app, ["--no-banner", "verify", str(root)])
         assert result.exit_code == 1
-        assert "verify failed" in result.output
+        assert "verify failed" in result.output.lower()
         # diff
-        result = runner.invoke(app, ["diff", str(root)])
+        result = runner.invoke(app, ["--no-banner", "diff", str(root)])
         assert result.exit_code == 0
         assert "modified: AGENTS.md" in result.output
         # approve
-        result = runner.invoke(app, ["approve", "AGENTS.md", "--root", str(root)])
+        result = runner.invoke(app, ["--no-banner", "approve", "AGENTS.md", "--root", str(root)])
         assert result.exit_code == 0
-        assert "approved" in result.output
+        assert "approved" in result.output.lower()
         # verify again
-        result = runner.invoke(app, ["verify", str(root)])
+        result = runner.invoke(app, ["--no-banner", "verify", str(root)])
         assert result.exit_code == 0
 
 

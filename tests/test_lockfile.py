@@ -6,7 +6,6 @@ import tempfile
 from pathlib import Path
 
 from cairnlock import lockfile
-from cairnlock.scanner import scan
 
 
 def test_init_writes_lockfile() -> None:
