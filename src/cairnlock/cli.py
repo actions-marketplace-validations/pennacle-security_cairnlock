@@ -8,15 +8,13 @@ from typing import Annotated
 
 import typer
 from rich.console import Console
-from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn
+from rich.progress import BarColumn, Progress, SpinnerColumn, TaskProgressColumn, TextColumn
 from rich.table import Table
-from rich.panel import Panel
-from rich.text import Text
 
 from cairnlock import __version__, lockfile
-from cairnlock.ascii_art import get_banner, get_cairn_lock_art
-from cairnlock.output import render_json, render_sarif, render_text, render_html, render_markdown
-from cairnlock.scanner import scan as run_scan, discover_files
+from cairnlock.ascii_art import get_banner
+from cairnlock.output import render_html, render_json, render_markdown, render_sarif, render_text
+from cairnlock.scanner import discover_files
 
 app = typer.Typer(
     add_completion=False,
@@ -269,7 +267,7 @@ def rules(
     verbose: Annotated[bool, typer.Option("--verbose", "-v", help="Show detailed rule info.")] = False,
 ) -> None:
     """List all detection rules with metadata."""
-    from cairnlock.rules import RULES, RULE_META
+    from cairnlock.rules import RULE_META, RULES
 
     table = Table(title="Detection Rules", show_header=True, header_style="bold magenta")
     table.add_column("ID", style="bold")
@@ -282,7 +280,7 @@ def rules(
     for rule in RULES:
         rid = getattr(rule, "RULE_ID", getattr(rule, "RULE_ID_001", "?"))
         name = RULE_META.get(rid, rid)
-        sev = "high"
+        sev = "high"  # default
         if rid == "MCP002":
             sev = "medium"
         elif rid == "UNP001":
@@ -298,20 +296,8 @@ def rules(
             "REM001": "SKILL.md, skills/",
             "MCP001": "MCP JSON configs",
             "MCP002": "MCP JSON configs",
-            "MCP003": "MCP JSON configs",
-            "MCP004": "MCP JSON configs",
             "UNP001": "MCP JSON configs",
             "SEC001": "All files",
-            "SHC001": "Code and config files",
-            "NET001": "Code and config files",
-            "FSY001": "Code and config files",
-            "ENV001": "Code and config files",
-            "PRI001": "Code and config files",
-            "OBF001": "Code and config files",
-            "SUP001": "Dependency files",
-            "CFG001": "Config and template files",
-            "TOO001": "Tool/function definitions",
-            "CRY001": "Code and config files",
         }
         scope = scope_map.get(rid, "Various")
 
