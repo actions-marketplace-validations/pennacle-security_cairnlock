@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <linearGradient id="stoneGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4A5568"/>
+      <stop offset="100%" style="stop-color:#2D3748"/>
+    </linearGradient>
+    <linearGradient id="capstoneGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#38A169"/>
+      <stop offset="100%" style="stop-color:#276749"/>
+    </linearGradient>
+  </defs>
+
+  <path d="M26 80 q0 11.5 23.5 11.5 23.5 0 23.5-11.5 0-11.5-23.5-11.5-23.5 0-23.5 11.5Z" fill="url(#stoneGradient)"/>
+  <path d="M34 55 q0 10.75 30 10.75 30 0 30-10.75 0-10.75-30-10.75-30 0-30 10.75Z" fill="url(#stoneGradient)"/>
+  <path d="M42 32 q0 10 22 10 22 0 22-10 0-10-22-10-22 0-22 10Z" fill="url(#capstoneGradient)"/>
+  <path d="M55 24 q0 -5 8.75 -5 8.75 0 8.75 5 v3.75 h-17.5 v-3.75Z" fill="none" stroke="#F7FAFC" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="64" cy="63" r="4" fill="#F7FAFC"/>
+  <path d="M60 66 h8 v8 h-8Z" fill="#F7FAFC"/>
+  <circle cx="64" cy="70" r="1" fill="#2D3748"/>
+</svg>

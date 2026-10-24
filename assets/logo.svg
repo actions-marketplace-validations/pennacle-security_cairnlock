@@ -1,11 +1,32 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="stoneGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4A5568"/>
+      <stop offset="100%" style="stop-color:#2D3748"/>
+    </linearGradient>
+    <linearGradient id="capstoneGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#38A169"/>
+      <stop offset="100%" style="stop-color:#276749"/>
+    </linearGradient>
+    <filter id="subtleShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000" flood-opacity="0.15"/>
+    </filter>
+  </defs>
+
   <!-- Bottom stone -->
-  <path d="M106 320 q0 46 94 46 94 0 94-46 0-46-94-46-94 0-94 46Z" fill="#52606D"/>
+  <path d="M106 320 q0 46 94 46 94 0 94-46 0-46-94-46-94 0-94 46Z" fill="url(#stoneGradient)" filter="url(#subtleShadow)"/>
+
   <!-- Middle stone -->
-  <path d="M136 222 q0 43 120 43 120 0 120-43 0-43-120-43-120 0-120 43Z" fill="#3E4C59"/>
-  <!-- Capstone (accent) -->
-  <path d="M171 128 q0 40 85 40 85 0 85-40 0-40-85-40-85 0-85 40Z" fill="#2DA44E"/>
+  <path d="M136 222 q0 43 120 43 120 0 120-43 0-43-120-43-120 0-120 43Z" fill="url(#stoneGradient)" filter="url(#subtleShadow)"/>
+
+  <!-- Capstone (accent green) -->
+  <path d="M171 128 q0 40 85 40 85 0 85-40 0-40-85-40-85 0-85 40Z" fill="url(#capstoneGradient)" filter="url(#subtleShadow)"/>
+
+  <!-- Lock shackle on capstone -->
+  <path d="M221 100 q0 -20 35 -20 35 0 35 20 v15 h-70 v-15Z" fill="none" stroke="#F7FAFC" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+
   <!-- Keyhole on middle stone -->
-  <circle cx="256" cy="252" r="15" fill="#F5F7FA"/>
-  <path d="M241 262 L271 262 L279 292 L233 292 Z" fill="#F5F7FA"/>
+  <circle cx="256" cy="252" r="16" fill="#F7FAFC"/>
+  <path d="M240 262 h32 v32 h-32Z" fill="#F7FAFC"/>
+  <circle cx="256" cy="278" r="4" fill="#2D3748"/>
 </svg>

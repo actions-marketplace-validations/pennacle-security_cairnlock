@@ -15,6 +15,7 @@ app = typer.Typer(
     add_completion=False,
     help="Static analyzer and lockfile for AI-agent context files.",
     no_args_is_help=True,
+    rich_markup_mode="rich",
 )
 
 
@@ -39,7 +40,7 @@ def main(
     """Static analyzer and lockfile for AI-agent context files."""
 
 
-def _render(findings, fmt: OutputFormat) -> str:
+def _render(findings: list, fmt: OutputFormat) -> str:
     if fmt is OutputFormat.json:
         return render_json(findings)
     if fmt is OutputFormat.sarif:
@@ -49,12 +50,12 @@ def _render(findings, fmt: OutputFormat) -> str:
 
 @app.command(name="scan")
 def scan_cmd(
-    path: Path = typer.Argument(Path("."), exists=True, file_okay=False),
-    fmt: OutputFormat = typer.Option(OutputFormat.text, "--format", "-f"),
-    output: Path | None = typer.Option(None, "--output", "-o", help="Write the report to a file."),
+    path: Path = typer.Argument(Path("."), exists=True, file_okay=False, help="Directory to scan."),
+    fmt: OutputFormat = typer.Option(OutputFormat.text, "--format", "-f", help="Output format."),
+    output: Path | None = typer.Option(None, "--output", "-o", help="Write report to file."),
     no_fail: bool = typer.Option(False, "--no-fail", help="Exit 0 even when findings exist."),
 ) -> None:
-    """Scan agent context files under PATH."""
+    """Scan agent context files under PATH for risk patterns."""
     result = run_scan(path)
     report = _render(result, fmt)
     if output is not None:
@@ -68,25 +69,29 @@ def scan_cmd(
 
 @app.command()
 def init(
-    path: Path = typer.Argument(Path("."), exists=True, file_okay=False),
-    force: bool = typer.Option(False, "--force", help="Overwrite an existing lockfile."),
+    path: Path = typer.Argument(Path("."), exists=True, file_okay=False, help="Repository root."),
+    force: bool = typer.Option(False, "--force", help="Overwrite existing lockfile."),
 ) -> None:
-    """Record hashes of all agent context files in cairnlock.lock."""
+    """Record SHA-256 hashes of all tracked agent context files in cairnlock.lock."""
     lock_path = path / lockfile.LOCKFILE_NAME
     if lock_path.exists() and not force:
         typer.echo(f"{lockfile.LOCKFILE_NAME} already exists; use --force to overwrite")
         raise typer.Exit(1)
     files = lockfile.hashes(path)
+    if not files:
+        typer.echo("warning: no agent context files found")
     lockfile.write(path, files)
     typer.echo(f"wrote {lockfile.LOCKFILE_NAME} with {len(files)} files")
 
 
 @app.command()
-def verify(path: Path = typer.Argument(Path("."), exists=True, file_okay=False)) -> None:
-    """Fail when tracked files changed without approval."""
+def verify(
+    path: Path = typer.Argument(Path("."), exists=True, file_okay=False, help="Repository root."),
+) -> None:
+    """Fail if any tracked file changed, was added, or deleted since last init."""
     lock = lockfile.load(path)
     if lock is None:
-        typer.echo(f"no {lockfile.LOCKFILE_NAME}; run cairnlock init first")
+        typer.echo(f"no {lockfile.LOCKFILE_NAME}; run 'cairnlock init' first")
         raise typer.Exit(1)
     changes = lockfile.changes(path, lock)
     tracked = len(lock.get("files", {}))
@@ -98,16 +103,18 @@ def verify(path: Path = typer.Argument(Path("."), exists=True, file_okay=False))
             typer.echo(f"{kind}: {rel}")
     total = sum(len(v) for v in changes.values())
     typer.echo(f"verify failed: {total} changed files")
-    typer.echo("review with cairnlock diff, then approve with cairnlock approve <file>")
+    typer.echo("review with 'cairnlock diff', then approve with 'cairnlock approve <file>'")
     raise typer.Exit(1)
 
 
 @app.command()
-def diff(path: Path = typer.Argument(Path("."), exists=True, file_okay=False)) -> None:
+def diff(
+    path: Path = typer.Argument(Path("."), exists=True, file_okay=False, help="Repository root."),
+) -> None:
     """Show changes against the lockfile, with findings inside changed files."""
     lock = lockfile.load(path)
     if lock is None:
-        typer.echo(f"no {lockfile.LOCKFILE_NAME}; run cairnlock init first")
+        typer.echo(f"no {lockfile.LOCKFILE_NAME}; run 'cairnlock init' first")
         raise typer.Exit(1)
     changes = lockfile.changes(path, lock)
     if not any(changes.values()):
@@ -127,10 +134,12 @@ def diff(path: Path = typer.Argument(Path("."), exists=True, file_okay=False)) -
 
 @app.command()
 def approve(
-    paths: list[Path] = typer.Argument(..., help="File(s) to approve."),
-    root: Path = typer.Option(Path("."), "--root", exists=True, file_okay=False),
+    paths: list[Path] = typer.Argument(..., help="File(s) to approve (relative to --root)."),
+    root: Path = typer.Option(
+        Path("."), "--root", exists=True, file_okay=False, help="Repository root."
+    ),
 ) -> None:
-    """Mark changed files as reviewed and update cairnlock.lock."""
+    """Mark changed files as reviewed (update hash) or approve deletion (remove entry)."""
     try:
         approved, unknown = lockfile.approve(root, paths)
     except FileNotFoundError as e:
