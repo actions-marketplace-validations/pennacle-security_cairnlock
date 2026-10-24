@@ -21,6 +21,10 @@ ASCII_CAIRN = r"""
         █ ▄▀█ █▄ █ █▀▄
        █ █▀█ █ ▀█ █▄▀
       █▀▀▀▀▀▀▀▀▀▀▀▀▀
+        ▄▄▄▄▄▄▄▄▄▄▄
+       █ ▄▀█ █▄ █ █▀▄
+      █ █▀█ █ ▀█ █▄▀
+     ▀▀▀▀▀▀▀▀▀▀▀▀▀▀
 """
 
 ASCII_LOCK = r"""
@@ -33,12 +37,12 @@ ASCII_LOCK = r"""
 
 BANNER = f"""{ASCII_LOGO}
     cairnlock — Static analyzer & lockfile for AI-agent context files
-    Version: {version} | pennacle-security/cairnlock
-    ▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀
+    Version: {{version}} | pennacle-security/cairnlock
+    ▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀
 """
 
 BANNER_COMPACT = f"""{ASCII_LOGO_SMALL}
-  cairnlock v{version} — Static analyzer & lockfile for AI-agent contexts
+  cairnlock v{{version}} — Static analyzer & lockfile for AI-agent contexts
   pennacle-security/cairnlock
 """
 
