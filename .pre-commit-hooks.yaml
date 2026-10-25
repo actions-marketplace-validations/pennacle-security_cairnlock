@@ -1,0 +1,22 @@
+# pre-commit framework hooks for cairnlock.
+# Usage in .pre-commit-config.yaml:
+#
+#   repos:
+#     - repo: https://github.com/pennacle-security/cairnlock
+#       rev: v0.7.0
+#       hooks:
+#         - id: cairnlock-verify
+#         - id: cairnlock-scan
+- id: cairnlock-verify
+  name: cairnlock verify
+  description: Fail when agent context files changed without approval
+  entry: cairnlock verify
+  language: python
+  pass_filenames: false
+  always_run: true
+- id: cairnlock-scan
+  name: cairnlock scan
+  description: Scan agent context files for risk patterns
+  entry: cairnlock scan
+  language: python
+  types: [markdown, json]

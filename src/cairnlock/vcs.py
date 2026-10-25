@@ -47,12 +47,8 @@ def _is_shallow(root: Path) -> bool:
     return (root / ".git" / "shallow").is_file()
 
 
-def read_file_at(root: Path, ref: str, path: str) -> str | None:
-    """Return the file content at ref, or None when the path is absent there.
-
-    Raises GitUsageError for malformed refs and GitEnvError when the ref does
-    not resolve or root is not a git repository.
-    """
+def _resolve_ref_or_raise(root: Path, ref: str) -> None:
+    """Validate ref syntax and confirm it resolves in this repository."""
     validate_ref(ref)
     probe = _git(root, ["cat-file", "-t", ref])
     if probe.returncode != 0:
@@ -65,6 +61,34 @@ def read_file_at(root: Path, ref: str, path: str) -> str | None:
                 "set fetch-depth: 0 on the actions/checkout step in GitHub Actions"
             )
         raise GitEnvError(f"git ref {ref!r} not found in this repository")
+
+
+def changed_paths(root: Path, base: str) -> set[str]:
+    """Repo-relative posix paths changed between base and the working tree,
+    plus untracked files. Git is called with an argument list."""
+    _resolve_ref_or_raise(root, base)
+    diff = _git(root, ["diff", "--name-only", base, "--"])
+    if diff.returncode != 0:
+        raise GitEnvError(f"git diff failed for ref {base!r}: {diff.stderr.strip()}")
+    others = _git(root, ["ls-files", "--others", "--exclude-standard"])
+    if others.returncode != 0:
+        raise GitEnvError(f"git ls-files failed: {others.stderr.strip()}")
+
+    out: set[str] = set()
+    for line in (diff.stdout + "\n" + others.stdout).splitlines():
+        line = line.strip().replace("\\", "/")
+        if line:
+            out.add(line)
+    return out
+
+
+def read_file_at(root: Path, ref: str, path: str) -> str | None:
+    """Return the file content at ref, or None when the path is absent there.
+
+    Raises GitUsageError for malformed refs and GitEnvError when the ref does
+    not resolve or root is not a git repository.
+    """
+    _resolve_ref_or_raise(root, ref)
 
     blob = _git(root, ["show", f"{ref}:{path}"])
     if blob.returncode != 0:

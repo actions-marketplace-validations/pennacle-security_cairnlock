@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from cairnlock.rules import (
+    claude_settings,
     config_injection,
     crypto_weakness,
     embedded_secrets,
@@ -27,6 +28,7 @@ RULES = [
     prompt_injection,
     remote_download,
     mcp_config,
+    claude_settings,
     unpinned_exec,
     embedded_secrets,
     shell_commands,
@@ -49,6 +51,7 @@ RULE_META = {
     "MCP002": "MCP filesystem server mounted at a filesystem root",
     "MCP003": "MCP server runs a shell or infrastructure command",
     "MCP004": "MCP server passed sensitive environment variable",
+    "CLD001": "Claude Code settings allowlist grants risky shell access",
     "UNP001": "package-runner package without a version pin",
     "SEC001": "possible embedded credential",
     "SHC001": "shell command execution pattern",
@@ -69,6 +72,7 @@ PROFILE_RULES = {
     "core": {
         "HUC001", "PIN001", "REM001",
         "MCP001", "MCP002", "MCP003", "MCP004",
+        "CLD001",
         "UNP001", "TOO001",
     },
     "extended": {

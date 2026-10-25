@@ -90,6 +90,25 @@ def render_sarif(findings: list[Finding]) -> str:
     return json.dumps(sarif, indent=2)
 
 
+def render_github(findings: list[Finding]) -> str:
+    """GitHub Actions workflow commands: inline PR annotations.
+
+    Percent signs and newlines are escaped per the workflow-command spec so
+    messages cannot inject extra annotations.
+    """
+    def escape(value: str) -> str:
+        return value.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
+
+    lines: list[str] = []
+    for f in findings:
+        level = SEVERITY_TO_SARIF.get(f.severity, "notice")
+        title = escape(f"{f.rule_id} ({f.severity})")
+        lines.append(
+            f"::{level} file={f.path},line={max(1, f.line)},title={title}::{escape(f.message)}"
+        )
+    return "\n".join(lines)
+
+
 def render_html(findings: list[Finding]) -> str:
     """Self-contained HTML report with styling."""
     if not findings:

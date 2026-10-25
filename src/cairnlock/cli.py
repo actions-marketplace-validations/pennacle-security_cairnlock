@@ -15,7 +15,14 @@ from cairnlock import __version__, lockfile, vcs
 from cairnlock import baseline as baseline_mod
 from cairnlock.ascii_art import get_banner
 from cairnlock.config import ConfigError, is_ignored, load_config
-from cairnlock.output import render_html, render_json, render_markdown, render_sarif, render_text
+from cairnlock.output import (
+    render_github,
+    render_html,
+    render_json,
+    render_markdown,
+    render_sarif,
+    render_text,
+)
 from cairnlock.rules import PROFILE_NAMES, PROFILE_RULES
 from cairnlock.scanner import check_file, discover_files
 
@@ -39,6 +46,7 @@ class OutputFormat(StrEnum):
     sarif = "sarif"
     html = "html"
     markdown = "md"
+    github = "github"
 
 
 class SeverityFilter(StrEnum):
@@ -92,6 +100,8 @@ def _render(findings: list, fmt: OutputFormat) -> str:
         return render_html(findings)
     if fmt is OutputFormat.markdown:
         return render_markdown(findings)
+    if fmt is OutputFormat.github:
+        return render_github(findings)
     return render_text(findings)
 
 
@@ -166,6 +176,13 @@ def scan_cmd(
     verbose: Annotated[bool, typer.Option("--verbose", "-v", help="Verbose output.")] = False,
     show_progress: Annotated[bool, typer.Option("--progress/--no-progress", help="Show progress bar.")] = True,
     no_banner: Annotated[bool, typer.Option("--no-banner", help="Hide ASCII banner.")] = False,
+    changed: Annotated[
+        str | None,
+        typer.Option(
+            "--changed",
+            help="Scan only files changed since this git ref (plus untracked files).",
+        ),
+    ] = None,
 ) -> None:
     """Scan agent context files under PATH for risk patterns."""
     # Machine formats and file output never get the banner; text on stdout does.
@@ -176,6 +193,17 @@ def scan_cmd(
     except ConfigError as exc:
         err_console.print(f"[red]error:[/red] {exc}")
         raise typer.Exit(2) from exc
+
+    changed_set: set[str] | None = None
+    if changed is not None:
+        try:
+            changed_set = vcs.changed_paths(path, changed)
+        except vcs.GitUsageError as exc:
+            err_console.print(f"[red]error:[/red] {exc}")
+            raise typer.Exit(2) from exc
+        except vcs.GitEnvError as exc:
+            err_console.print(f"[red]error:[/red] {exc}")
+            raise typer.Exit(2) from exc
 
     if profile is not None:
         if profile not in PROFILE_NAMES:
@@ -191,8 +219,17 @@ def scan_cmd(
         err_console.print(f"Scanning: {path.absolute()} (profile: {config.profile})")
 
     files = list(discover_files(path, include_code=include_code))
+    if changed_set is not None:
+        files = [p for p in files if p.relative_to(path).as_posix() in changed_set]
     if not files:
-        console.print("[yellow]No agent context files found[/yellow]")
+        # Status goes to stderr; machine formats still emit a valid document.
+        if changed_set is not None:
+            err_console.print(f"no changed context files vs '{changed}'")
+        else:
+            err_console.print("[yellow]No agent context files found[/yellow]")
+        if fmt is OutputFormat.text:
+            return
+        typer.echo(_render([], fmt))
         return
 
     disabled = set(config.disabled_rules)
@@ -499,6 +536,73 @@ def rules(
                 table.add_row(rid, profile, scope, RULE_META.get(rid, rid))
 
     console.print(table)
+
+
+hook_app = typer.Typer(help="Install or remove the pre-commit hook.", no_args_is_help=True)
+app.add_typer(hook_app, name="hook")
+
+HOOK_MARKER = "# installed by cairnlock"
+HOOK_SCRIPT = (
+    "#!/bin/sh\n"
+    + HOOK_MARKER
+    + "\n# Blocks commits with unreviewed agent context file changes.\n"
+    "cairnlock verify || exit 1\n"
+)
+
+
+@hook_app.command()
+def install(
+    ctx: typer.Context,
+    root: Annotated[Path, typer.Option("--root", exists=True, file_okay=False, help="Repository root.")] = Path("."),
+) -> None:
+    """Write the cairnlock pre-commit hook into .git/hooks/pre-commit."""
+    _print_banner(ctx)
+    hooks_dir = root / ".git" / "hooks"
+    if not (root / ".git").is_dir():
+        err_console.print(f"[red]error:[/red] {root} is not a git repository")
+        raise typer.Exit(2)
+    hooks_dir.mkdir(parents=True, exist_ok=True)
+    target = hooks_dir / "pre-commit"
+    if target.is_file():
+        existing = target.read_text(encoding="utf-8", errors="replace")
+        if HOOK_MARKER not in existing and existing.strip():
+            err_console.print(
+                "[red]error:[/red] an existing pre-commit hook is not managed by"
+                " cairnlock; merge it manually or remove it first"
+            )
+            raise typer.Exit(1)
+    target.write_text(HOOK_SCRIPT, encoding="utf-8")
+    console.print(f"[green]OK:[/green] installed pre-commit hook at {target}")
+
+
+@hook_app.command()
+def uninstall(
+    ctx: typer.Context,
+    root: Annotated[Path, typer.Option("--root", exists=True, file_okay=False, help="Repository root.")] = Path("."),
+) -> None:
+    """Remove the cairnlock pre-commit hook (only if cairnlock manages it)."""
+    _print_banner(ctx)
+    target = root / ".git" / "hooks" / "pre-commit"
+    if not target.is_file():
+        console.print("no pre-commit hook present")
+        return
+    existing = target.read_text(encoding="utf-8", errors="replace")
+    if HOOK_MARKER not in existing:
+        err_console.print(
+            "[red]error:[/red] the pre-commit hook is not managed by cairnlock;"
+            " refusing to remove it"
+        )
+        raise typer.Exit(1)
+    target.unlink()
+    console.print("[green]OK:[/green] removed pre-commit hook")
+
+
+@app.command()
+def mcp(ctx: typer.Context) -> None:
+    """Run cairnlock as an MCP stdio server (scan, verify, rules, stats)."""
+    from cairnlock.mcp_server import serve
+
+    serve()
 
 
 @app.command()

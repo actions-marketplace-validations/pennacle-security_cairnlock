@@ -7,6 +7,36 @@ Semantic Versioning 2.0.0.
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-10-25
+
+### Added
+
+- `cairnlock mcp`: an MCP stdio server that exposes scan, verify, rules,
+  and stats as agent-callable tools, so coding agents can audit their own
+  context files mid-session. Speaks newline-delimited JSON-RPC 2.0
+  (initialize, tools/list, tools/call, ping) with no new dependencies;
+  stdout carries protocol messages only.
+- `cairnlock scan --changed <git-ref>`: scan only files changed since a
+  ref (plus untracked files). Turns scan from a whole-repo job into a
+  change-scoped one for monorepos and PR checks. Git is called with an
+  argument list; bad refs exit 2 with the usual messages.
+- `scan --format github`: GitHub Actions workflow-command annotations
+  (`::error file=...,line=...,title=...`), with percent and newline
+  escaping so messages cannot inject extra annotations.
+- `cairnlock hook install|uninstall`: writes and removes the pre-commit
+  hook in `.git/hooks` without the manual copy. Refuses to touch a
+  pre-existing foreign hook; uninstall only removes hooks cairnlock
+  manages.
+- `.pre-commit-hooks.yaml`: cairnlock is now usable directly from the
+  pre-commit framework (`repo: https://github.com/pennacle-security/cairnlock`,
+  ids `cairnlock-verify` and `cairnlock-scan`).
+- New core rule CLD001: flags risky permission allowlists in Claude Code
+  `settings.json` — bare `Bash`, `Bash(curl:*)`-style network and shell
+  entries, and `defaultMode: "bypassPermissions"`. Ships with bad/good
+  fixtures; ordinary entries like `Bash(npm run test:*)` stay clean.
+- `cairnlock rules` output includes the new rule; machine formats emit a
+  valid empty document when there is nothing to scan instead of silence.
+
 ### Fixed
 
 - The release workflow's GitHub Release job now downloads the dist
@@ -22,6 +52,7 @@ Semantic Versioning 2.0.0.
 
 - Dependabot bumps: actions/checkout 4 → 7 and actions/setup-python
   5 → 7 across the CI and release workflows and the composite action.
+
 
 ## [0.6.0] - 2026-10-25
 
@@ -216,7 +247,8 @@ Semantic Versioning 2.0.0.
 - Secret detection false positives on placeholder values
 - Cross-rule false positives in good fixtures
 
-[Unreleased]: https://github.com/pennacle-security/cairnlock/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/pennacle-security/cairnlock/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/pennacle-security/cairnlock/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/pennacle-security/cairnlock/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/pennacle-security/cairnlock/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/pennacle-security/cairnlock/compare/v0.3.0...v0.4.0

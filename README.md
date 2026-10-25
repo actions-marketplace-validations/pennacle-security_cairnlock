@@ -48,11 +48,13 @@ when the same pull request rehashes the lockfile to hide it.
 
 | Capability | Command | What you get |
 |---|---|---|
-| Risk scanning | `cairnlock scan` | 19 rules across two profiles, inline ignores, deduplication |
+| Risk scanning | `cairnlock scan` | 20 rules across two profiles, inline ignores, deduplication |
 | Change control | `cairnlock init` / `verify` | SHA-256 lockfile; unreviewed edits fail CI |
 | Tamper protection | `cairnlock verify --base origin/main` | lockfile rehashing in the same PR cannot hide edits |
+| Diff-scoped scanning | `scan --changed origin/main` | scan only what a change touched — monorepo speed |
 | Noise control | `--fail-on`, `--baseline`, config file | adopt on large repos without drowning in findings |
-| Reporting | `--format text/json/sarif/html/md` | SARIF 2.1.0 for GitHub Code Scanning; HTML for humans |
+| Reporting | `--format text/json/sarif/html/md/github` | SARIF for Code Scanning, `::error` annotations for PRs |
+| Agent integration | `cairnlock mcp` | MCP stdio server: agents audit their own context files |
 | Ecosystem coverage | file discovery | Claude, Cursor, Gemini, Copilot, Cline, Windsurf, Roo, Continue, opencode |
 
 ## Install
@@ -84,6 +86,7 @@ cairnlock verify    # fail on unreviewed changes
 cairnlock diff      # changes, with findings inside them
 cairnlock approve AGENTS.md   # mark a reviewed change
 cairnlock rules     # list the rule set
+cairnlock hook install   # install the pre-commit hook
 ```
 
 Real output from a skill file containing a pipe-to-shell installer, a base64
@@ -132,7 +135,8 @@ Two exclusive profiles. One runs per scan; rule ids never overlap.
 
 - **`core`** (default) — agent-specific rules over agent context files:
   hidden Unicode, prompt injection, remote installs in skills, risky MCP
-  server settings, unpinned packages, tool-calling schema risks.
+  server settings, risky Claude Code permission allowlists, unpinned
+  packages, tool-calling schema risks.
 - **`extended`** — generic rules over source and dependency files
   (`.py`, `.js`, `.ts`, `requirements*`, `package.json`, `pyproject.toml`,
   `setup.py`, `setup.cfg`): secrets, shell execution, exfiltration,
@@ -142,6 +146,36 @@ Two exclusive profiles. One runs per scan; rule ids never overlap.
 ```bash
 cairnlock scan --profile extended
 ```
+
+## Diff-scoped scanning
+
+On a large repository, a full scan in every CI run is wasteful when the
+pull request touched three files:
+
+```bash
+cairnlock scan --changed origin/main
+```
+
+Only files changed since the ref are scanned (untracked files count as
+additions). Combine with `--format github` to surface each finding as an
+inline PR annotation:
+
+```bash
+cairnlock scan --changed origin/main --format github
+```
+
+## MCP server
+
+`cairnlock mcp` runs cairnlock as an MCP stdio server, so coding agents
+can call it themselves mid-session:
+
+```json
+{"mcpServers": {"cairnlock": {"command": "cairnlock", "args": ["mcp"]}}}
+```
+
+Tools: `scan` (findings report), `verify` (lockfile state, with optional
+`base`), `rules`, and `stats`. The server is read-only, offline, and
+writes protocol messages to stdout only.
 
 ## Detection rules
 
@@ -158,6 +192,7 @@ Full rule pages: [docs/rules.md](docs/rules.md) · Scope audit:
 | MCP003 | core | MCP JSON configs | medium | shell or infrastructure command as the server |
 | MCP004 | core | MCP JSON configs | high | sensitive env vars passed to a server |
 | UNP001 | core | MCP JSON configs | medium | package-runner package without a version pin |
+| CLD001 | core | .claude/settings.json | high | risky permission allowlist (bare Bash, curl, bypassPermissions) |
 | TOO001 | core | tool definitions, JSON configs | high/med | tool and function calling injection |
 | SEC001 | extended | all scanned files | high/med | embedded credentials (entropy-validated) |
 | SHC001 | extended | source files | high/med | shell command execution patterns |
