@@ -5,11 +5,18 @@
 </p>
 
 <p align="center">
-  <a href="https://pypi.org/project/cairnlock/"><img src="https://img.shields.io/pypi/v/cairnlock" alt="PyPI version"></a>
-  <a href="https://pypi.org/project/cairnlock/"><img src="https://img.shields.io/pypi/pyversions/cairnlock" alt="Python versions"></a>
-  <a href="https://pypi.org/project/cairnlock/"><img src="https://img.shields.io/pypi/l/cairnlock" alt="License"></a>
-  <a href="https://github.com/pennacle-security/cairnlock/releases"><img src="https://img.shields.io/github/v/release/pennacle-security/cairnlock" alt="GitHub release"></a>
-  <a href="https://github.com/pennacle-security/cairnlock/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/pennacle-security/cairnlock/ci.yml?branch=main" alt="CI"></a>
+  <a href="https://pypi.org/project/cairnlock/"><img src="https://img.shields.io/pypi/v/cairnlock?style=flat-square&logo=pypi&logoColor=white" alt="PyPI version"></a>
+  <a href="https://pypi.org/project/cairnlock/"><img src="https://img.shields.io/pypi/pyversions/cairnlock?style=flat-square&logo=python&logoColor=white" alt="Python versions"></a>
+  <a href="https://pypi.org/project/cairnlock/"><img src="https://img.shields.io/pypi/status/cairnlock?style=flat-square" alt="PyPI status"></a>
+  <a href="https://pypi.org/project/cairnlock/"><img src="https://img.shields.io/pypi/implementation/cairnlock?style=flat-square" alt="Implementation"></a>
+  <a href="https://github.com/pennacle-security/cairnlock/blob/main/LICENSE"><img src="https://img.shields.io/github/license/pennacle-security/cairnlock?style=flat-square" alt="License"></a>
+  <a href="https://github.com/pennacle-security/cairnlock/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/pennacle-security/cairnlock/ci.yml?branch=main&style=flat-square&logo=githubactions&logoColor=white" alt="CI status"></a>
+  <a href="https://github.com/pennacle-security/cairnlock/releases"><img src="https://img.shields.io/github/v/release/pennacle-security/cairnlock?style=flat-square" alt="Latest release"></a>
+  <a href="https://github.com/pennacle-security/cairnlock/stargazers"><img src="https://img.shields.io/github/stars/pennacle-security/cairnlock?style=flat-square&logo=github" alt="Stars"></a>
+  <a href="https://github.com/pennacle-security/cairnlock/issues"><img src="https://img.shields.io/github/issues/pennacle-security/cairnlock?style=flat-square&logo=github" alt="Open issues"></a>
+  <a href="https://github.com/pennacle-security/cairnlock/pulls"><img src="https://img.shields.io/github/issues-pr/pennacle-security/cairnlock?style=flat-square&logo=github" alt="Open pull requests"></a>
+  <a href="https://github.com/pennacle-security/cairnlock/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22"><img src="https://img.shields.io/github/issues/pennacle-security/cairnlock/good%20first%20issue?style=flat-square&logo=github&label=good%20first%20issues" alt="Good first issues"></a>
+  <a href="https://github.com/pennacle-security/cairnlock/commits/main"><img src="https://img.shields.io/github/last-commit/pennacle-security/cairnlock/main?style=flat-square&logo=github" alt="Last commit"></a>
   <a href="https://github.com/astral-sh/ruff"><img src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json" alt="Ruff"></a>
 </p>
 
