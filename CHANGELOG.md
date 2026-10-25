@@ -51,8 +51,7 @@ Semantic Versioning 2.0.0.
   plain `key =` assignments no longer duplicate SEC001.
 - `cairnlock rules` shows a Profile column and per-rule scope.
 
-[Unreleased]: https://github.com/pennacle-security/cairnlock/compare/v0.5.0...HEAD
-[0.5.0]: https://github.com/pennacle-security/cairnlock/compare/v0.4.0...v0.5.0
+## [0.4.0] - 2026-10-25
 
 ### Added
 
@@ -89,7 +88,7 @@ Semantic Versioning 2.0.0.
   the git+https install stays as a fallback.
 - Action description shortened below the 125-character marketplace limit.
 
-[0.4.0]: https://github.com/pennacle-security/cairnlock/compare/v0.3.0...v0.4.0
+## [0.3.0] - 2026-10-25
 
 ### Added
 
@@ -128,9 +127,6 @@ Semantic Versioning 2.0.0.
 
 - CI lint failures: `ruff check` passed locally on every configuration
   tested before this release.
-
-[0.3.0]: https://github.com/pennacle-security/cairnlock/compare/v0.2.0...v0.3.0
-[0.2.0]: https://github.com/pennacle-security/cairnlock/releases/tag/v0.2.0
 
 ## [0.2.0] - 2026-10-24
 
@@ -172,3 +168,9 @@ Semantic Versioning 2.0.0.
 ### Fixed
 - Secret detection false positives on placeholder values
 - Cross-rule false positives in good fixtures
+
+[Unreleased]: https://github.com/pennacle-security/cairnlock/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/pennacle-security/cairnlock/compare/v0.4.0...v0.5.0
+[0.4.0]: https://github.com/pennacle-security/cairnlock/compare/v0.3.0...v0.4.0
+[0.3.0]: https://github.com/pennacle-security/cairnlock/compare/v0.2.0...v0.3.0
+[0.2.0]: https://github.com/pennacle-security/cairnlock/releases/tag/v0.2.0
