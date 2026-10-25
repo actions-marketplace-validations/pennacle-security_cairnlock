@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>cairnlock — FAQ</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <span class="brand">cairnlock</span>
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="guide.html">Guide</a>
+      <a href="rules.html">Rules</a>
+      <a href="faq.html">FAQ</a>
+      <a href="https://github.com/pennacle-security/cairnlock">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap">
+  <h1>FAQ</h1>
+  <p class="lede">Questions that come up on day three of using any security tool.</p>
+
+  <dl class="faq">
+    <dt>A finding is wrong. How do I silence it?</dt>
+    <dd>Three levels, quietest first: add
+    <code>cairnlock:ignore RULEID</code> on the offending line, add the rule
+    id to <code>disabled_rules</code> in <code>cairnlock.toml</code>, or set
+    <code>--fail-on never</code> for one run. If the pattern itself is wrong,
+    please open a false-positive report using the issue template — that fixes
+    it for everyone.</dd>
+
+    <dt>Why does scan exit 1 on the first low-severity finding?</dt>
+    <dd>The default threshold is <code>low</code>, which fails on anything.
+    Teams adopting on a large repo usually start with
+    <code>--fail-on high</code>, record a baseline with
+    <code>--write-baseline</code>, and tighten over time.</dd>
+
+    <dt>What is the difference between core and extended?</dt>
+    <dd>They are exclusive rule sets. <code>core</code> covers agent context
+    files with agent-specific rules. <code>extended</code> swaps in the
+    generic rules and also widens discovery to source files (Python,
+    JavaScript, TypeScript) and dependency files, because those rules were
+    written for code. See the <a href="rules.html">rule reference</a> for
+    the exact split.</dd>
+
+    <dt>Can a pull request hide an edit by rehashing the lockfile?</dt>
+    <dd>Not with <code>verify --base</code>. It reads the lockfile as it
+    exists at the base ref with <code>git show</code>, so a rehash in the
+    same change is its own finding and fails the run. Add CODEOWNERS on
+    <code>cairnlock.lock</code> so a human also reviews that file.</dd>
+
+    <dt>Does cairnlock send my files anywhere?</dt>
+    <dd>No. No network calls at scan time, ever. Base verification reads
+    from the local git clone only. Nothing it scans is executed, imported,
+    or installed.</dd>
+
+    <dt>What do the exit codes mean?</dt>
+    <dd><code>0</code> clean, <code>1</code> findings or changes,
+    <code>2</code> usage or environment error — bad ref, missing base
+    lockfile, shallow clone. Scripts can rely on 1 meaning "look at this"
+    and 2 meaning "fix how you called it".</dd>
+
+    <dt>Verify says my lockfile is missing. I deleted it by accident.</dt>
+    <dd>Run <code>cairnlock init</code> again to rebuild it from the current
+    tree, then review the diff before committing. If the old lockfile is in
+    git history, <code>git show HEAD:cairnlock.lock</code> shows what was
+    tracked, and <code>git checkout HEAD -- cairnlock.lock</code> restores
+    it exactly.</dd>
+
+    <dt>How do I adopt this on a repository with a long history of
+    unreviewed agent files?</dt>
+    <dd>Run <code>scan --write-baseline</code> to record today's findings,
+    commit the baseline, and gate on new findings only. Fix the backlog at
+    your own pace; new problems still fail CI.</dd>
+
+    <dt>Does the SARIF output work with GitHub Code Scanning?</dt>
+    <dd>Yes. <code>scan --format sarif --output cairnlock.sarif</code>
+    produces SARIF 2.1.0 with rule help URIs and partial fingerprints, and
+    the README shows the upload step. The composite action does the verify
+    and scan for you.</dd>
+
+    <dt>Why is the tool called cairnlock?</dt>
+    <dd>A cairn is a stack of stones marking a path. Each reviewed agent
+    file is a stone; the lockfile is the stack. Someone moving a stone
+    without you noticing is the problem this tool exists to stop.</dd>
+  </dl>
+</div>
+
+<footer>
+  <div class="wrap">
+    Something missing? <a href="https://github.com/pennacle-security/cairnlock/issues/new?template=feature_request.yml">Suggest a feature</a>
+    or <a href="https://github.com/pennacle-security/cairnlock/issues/new?template=rule_quality.yml">report a pattern problem</a>.
+  </div>
+</footer>
+</body>
+</html>

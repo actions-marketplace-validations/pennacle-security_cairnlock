@@ -7,6 +7,37 @@ Semantic Versioning 2.0.0.
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-10-25
+
+### Added
+
+- Self-scan gate in CI: the repository runs `cairnlock scan --profile
+  extended --fail-on high` on itself and ships `.cairnlockignore` so the
+  rule modules and test fixtures do not drown the signal. The scanner's own
+  `subprocess` call carries an inline `cairnlock:ignore` — the suppression
+  feature used where it belongs.
+- Self-scan regression test asserting zero high findings.
+- Documentation site upgrade: shared `docs/styles.css`, a new FAQ page
+  covering exit codes, false positives, adoption path, and lockfile
+  recovery, plus corrected version references in the CI examples.
+- `docs/social-kit.md` with ready-to-post announcements and
+  `assets/social-card.svg` for the repository social preview.
+
+### Fixed
+
+- `--no-banner` after a subcommand failed with exit 2 ("No such option"),
+  which broke `cairnlock scan --no-banner` and the GitHub Action's scan
+  step for every user. The banner now prints lazily per command: JSON,
+  SARIF, HTML, and Markdown output never show it, and the option works
+  before or after the subcommand.
+- SHC001's f-string pattern matched every f-string call in any scanned
+  file (dozens of false positives on ordinary Python code, including
+  cairnlock's own CLI). The pattern is removed; real f-string shell
+  injection stays covered by the os.system and subprocess patterns, which
+  see the command context.
+- FSY001's `config.json` pattern matched any filename containing it, such
+  as `claude_desktop_config.json`. Word boundaries fix the match.
+
 ## [0.5.0] - 2026-10-25
 
 ### Added
@@ -169,7 +200,8 @@ Semantic Versioning 2.0.0.
 - Secret detection false positives on placeholder values
 - Cross-rule false positives in good fixtures
 
-[Unreleased]: https://github.com/pennacle-security/cairnlock/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/pennacle-security/cairnlock/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/pennacle-security/cairnlock/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/pennacle-security/cairnlock/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/pennacle-security/cairnlock/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/pennacle-security/cairnlock/compare/v0.2.0...v0.3.0

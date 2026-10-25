@@ -29,7 +29,9 @@ _PATTERNS = [
     # Sensitive file access
     (r"(?:/etc/(?:passwd|shadow|sudoers|ssh)|~/\.ssh/|%USERPROFILE%\\\\\.ssh)", "Sensitive system file access", "high"),
     (r"(?:id_rsa|id_ed25519|id_dsa|\.pem|\.key|\.crt|\.pfx)", "Private key/certificate file access", "high"),
-    (r"(?:\.env|\.env\.\w+|config\.json|secrets\.yaml)", "Configuration/secrets file access", "high"),
+    # Word boundaries keep this from matching claude_desktop_config.json or
+    # other filenames that merely contain config.json.
+    (r"(?:\.env\b|\bconfig\.json\b|\bsecrets\.yaml\b)", "Configuration/secrets file access", "high"),
 
     # Archive extraction
     (r"\btarfile\.open\s*\(", "Tar archive extraction - verify path safety", "medium"),

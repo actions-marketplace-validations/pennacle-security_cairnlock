@@ -4,31 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>cairnlock — rule reference</title>
-<style>
-  :root { --bg:#0f172a; --panel:#1e293b; --text:#e2e8f0; --muted:#94a3b8; --accent:#22c55e; --line:#334155; }
-  * { box-sizing: border-box; }
-  body { margin:0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:var(--bg); color:var(--text); line-height:1.6; }
-  a { color:var(--accent); text-decoration:none; }
-  a:hover { text-decoration:underline; }
-  .wrap { max-width:960px; margin:0 auto; padding:2rem 1.5rem; }
-  header { border-bottom:1px solid var(--line); padding:1rem 0; }
-  header .wrap { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; }
-  .brand { font-weight:700; font-size:1.1rem; letter-spacing:0.02em; }
-  nav a { margin-left:1.25rem; color:var(--muted); }
-  nav a:hover { color:var(--text); }
-  h1 { font-size:1.8rem; margin:2.5rem 0 0.5rem; }
-  h2 { font-size:1.15rem; margin-top:2.2rem; }
-  h2 code { font-size:1rem; }
-  code { background:var(--panel); border:1px solid var(--line); padding:0.1rem 0.4rem; border-radius:4px; font-size:0.9em; }
-  table { width:100%; border-collapse:collapse; margin:1rem 0; }
-  th, td { text-align:left; padding:0.5rem 0.75rem; border-bottom:1px solid var(--line); vertical-align:top; }
-  th { color:var(--muted); font-weight:600; font-size:0.85rem; text-transform:uppercase; letter-spacing:0.04em; }
-  .sev { font-size:0.8rem; }
-  .high { color:#f87171; }
-  .medium { color:#fbbf24; }
-  .low { color:#60a5fa; }
-  footer { border-top:1px solid var(--line); margin-top:3rem; padding:1.5rem 0; color:var(--muted); font-size:0.9rem; }
-</style>
+<link rel="stylesheet" href="styles.css">
 </head>
 <body>
 <header>
@@ -38,12 +14,13 @@
       <a href="index.html">Home</a>
       <a href="guide.html">Guide</a>
       <a href="rules.html">Rules</a>
+      <a href="faq.html">FAQ</a>
       <a href="https://github.com/pennacle-security/cairnlock">GitHub</a>
     </nav>
   </div>
 </header>
 
-<div class="wrap">
+<div class="wrap wide">
   <h1>Rule reference</h1>
   <p class="lede">Nineteen static detection rules across two exclusive profiles.
   Every rule ships with a bad fixture that must trigger and a good fixture
@@ -58,26 +35,26 @@
   <code>setup.cfg</code>). One profile runs per scan.</p>
 
   <table>
-    <tr><th>ID</th><th>Scope</th><th>Severity</th><th>Detects</th></tr>
-    <tr><td><a href="#huc001"><code>HUC001</code></a></td><td>all files</td><td class="sev"><span class="high">high</span>/<span class="medium">medium</span>/<span class="low">low</span></td><td>Invisible and bidirectional Unicode control characters (Trojan Source class)</td></tr>
-    <tr><td><a href="#pin001"><code>PIN001</code></a></td><td>JSON description fields, SKILL.md frontmatter</td><td class="sev"><span class="high">high</span></td><td>Prompt-injection phrases in tool and skill descriptions</td></tr>
-    <tr><td><a href="#rem001"><code>REM001</code></a></td><td>SKILL.md, files under skills/</td><td class="sev"><span class="high">high</span>/<span class="medium">medium</span></td><td>Pipe-to-shell downloads, base64 payloads, remote fetches</td></tr>
-    <tr><td><a href="#mcp001"><code>MCP001</code></a></td><td>MCP JSON configs</td><td class="sev"><span class="high">high</span></td><td>Auto-approve or permission-skipping flags</td></tr>
-    <tr><td><a href="#mcp002"><code>MCP002</code></a></td><td>MCP JSON configs</td><td class="sev"><span class="medium">medium</span></td><td>Filesystem server mounted at a filesystem root</td></tr>
-    <tr><td><a href="#mcp003"><code>MCP003</code></a></td><td>MCP JSON configs</td><td class="sev"><span class="medium">medium</span></td><td>Unpinned dangerous command (npx, uvx, docker, kubectl, and similar)</td></tr>
-    <tr><td><a href="#mcp004"><code>MCP004</code></a></td><td>MCP JSON configs</td><td class="sev"><span class="high">high</span></td><td>Sensitive environment variables passed to a server</td></tr>
-    <tr><td><a href="#unp001"><code>UNP001</code></a></td><td>MCP JSON configs</td><td class="sev"><span class="medium">medium</span></td><td>npx, uvx, or bunx packages without a version pin</td></tr>
-    <tr><td><a href="#sec001"><code>SEC001</code></a></td><td>all files</td><td class="sev"><span class="high">high</span>/<span class="medium">medium</span></td><td>Embedded credentials with Shannon entropy validation</td></tr>
-    <tr><td><a href="#shc001"><code>SHC001</code></a></td><td>code and config files</td><td class="sev"><span class="high">high</span>/<span class="medium">medium</span></td><td>Shell command execution: eval, exec, os.system, subprocess with metacharacters</td></tr>
-    <tr><td><a href="#net001"><code>NET001</code></a></td><td>code and config files</td><td class="sev"><span class="high">high</span>/<span class="medium">medium</span></td><td>Data exfiltration: cloud metadata endpoints, pastebins, tunnels, encoded URL payloads</td></tr>
-    <tr><td><a href="#fsy001"><code>FSY001</code></a></td><td>code and config files</td><td class="sev"><span class="high">high</span>/<span class="medium">medium</span></td><td>Path traversal, sensitive file access, unsafe archive extraction</td></tr>
-    <tr><td><a href="#env001"><code>ENV001</code></a></td><td>code and config files</td><td class="sev"><span class="high">high</span>/<span class="medium">medium</span></td><td>Credential dumping through environment iteration or serialization</td></tr>
-    <tr><td><a href="#pri001"><code>PRI001</code></a></td><td>code and config files</td><td class="sev"><span class="high">high</span>/<span class="medium">medium</span></td><td>Privilege escalation, container escape, process injection</td></tr>
-    <tr><td><a href="#obf001"><code>OBF001</code></a></td><td>code and config files</td><td class="sev"><span class="high">high</span>/<span class="medium">medium</span>/<span class="low">low</span></td><td>Encoding and obfuscation: compressed payloads, homoglyphs, long encoded literals</td></tr>
-    <tr><td><a href="#sup001"><code>SUP001</code></a></td><td>dependency files</td><td class="sev"><span class="high">high</span>/<span class="medium">medium</span>/<span class="low">low</span></td><td>Supply chain risks: unpinned dependencies, install scripts, custom indexes</td></tr>
-    <tr><td><a href="#cfg001"><code>CFG001</code></a></td><td>config and template files</td><td class="sev"><span class="high">high</span>/<span class="medium">medium</span></td><td>Template injection, unsafe YAML tags, hardcoded secrets in config</td></tr>
-    <tr><td><a href="#too001"><code>TOO001</code></a></td><td>tool and function definitions</td><td class="sev"><span class="high">high</span>/<span class="medium">medium</span></td><td>Injection risks in tool and function calling schemas</td></tr>
-    <tr><td><a href="#cry001"><code>CRY001</code></a></td><td>code and config files</td><td class="sev"><span class="high">high</span>/<span class="medium">medium</span>/<span class="low">low</span></td><td>Weak hashes and ciphers, insecure randomness, disabled certificate checks</td></tr>
+    <tr><th>ID</th><th>Profile</th><th>Scope</th><th>Severity</th><th>Detects</th></tr>
+    <tr><td><a href="#huc001"><code>HUC001</code></a></td><td>core</td><td>all context files</td><td class="sev"><span class="high">high</span>/<span class="medium">medium</span>/<span class="low">low</span></td><td>Invisible and bidirectional Unicode control characters (Trojan Source class)</td></tr>
+    <tr><td><a href="#pin001"><code>PIN001</code></a></td><td>core</td><td>JSON descriptions, SKILL.md frontmatter</td><td class="sev"><span class="high">high</span></td><td>Prompt-injection phrases in tool and skill descriptions</td></tr>
+    <tr><td><a href="#rem001"><code>REM001</code></a></td><td>core</td><td>SKILL.md, files under skills/</td><td class="sev"><span class="high">high</span>/<span class="medium">medium</span></td><td>Pipe-to-shell downloads, base64 payloads, remote fetches</td></tr>
+    <tr><td><a href="#mcp001"><code>MCP001</code></a></td><td>core</td><td>MCP JSON configs</td><td class="sev"><span class="high">high</span></td><td>Auto-approve or permission-skipping flags</td></tr>
+    <tr><td><a href="#mcp002"><code>MCP002</code></a></td><td>core</td><td>MCP JSON configs</td><td class="sev"><span class="medium">medium</span></td><td>Filesystem server mounted at a filesystem root</td></tr>
+    <tr><td><a href="#mcp003"><code>MCP003</code></a></td><td>core</td><td>MCP JSON configs</td><td class="sev"><span class="medium">medium</span></td><td>Shell or infrastructure command as the server</td></tr>
+    <tr><td><a href="#mcp004"><code>MCP004</code></a></td><td>core</td><td>MCP JSON configs</td><td class="sev"><span class="high">high</span></td><td>Sensitive environment variables passed to a server</td></tr>
+    <tr><td><a href="#unp001"><code>UNP001</code></a></td><td>core</td><td>MCP JSON configs</td><td class="sev"><span class="medium">medium</span></td><td>Package-runner package without a version pin</td></tr>
+    <tr><td><a href="#too001"><code>TOO001</code></a></td><td>core</td><td>tool definitions, JSON configs</td><td class="sev"><span class="high">high</span>/<span class="medium">medium</span></td><td>Tool and function calling injection risks</td></tr>
+    <tr><td><a href="#sec001"><code>SEC001</code></a></td><td>extended</td><td>all scanned files</td><td class="sev"><span class="high">high</span>/<span class="medium">medium</span></td><td>Embedded credentials with Shannon entropy validation</td></tr>
+    <tr><td><a href="#shc001"><code>SHC001</code></a></td><td>extended</td><td>source files</td><td class="sev"><span class="high">high</span>/<span class="medium">medium</span></td><td>Shell command execution patterns</td></tr>
+    <tr><td><a href="#net001"><code>NET001</code></a></td><td>extended</td><td>source files</td><td class="sev"><span class="high">high</span>/<span class="medium">medium</span></td><td>Data exfiltration patterns</td></tr>
+    <tr><td><a href="#fsy001"><code>FSY001</code></a></td><td>extended</td><td>source files</td><td class="sev"><span class="high">high</span>/<span class="medium">medium</span></td><td>Path traversal, sensitive file access, unsafe archive extraction</td></tr>
+    <tr><td><a href="#env001"><code>ENV001</code></a></td><td>extended</td><td>source files</td><td class="sev"><span class="high">high</span>/<span class="medium">medium</span></td><td>Credential access through environment variables</td></tr>
+    <tr><td><a href="#pri001"><code>PRI001</code></a></td><td>extended</td><td>source files</td><td class="sev"><span class="high">high</span>/<span class="medium">medium</span></td><td>Privilege escalation and process injection</td></tr>
+    <tr><td><a href="#obf001"><code>OBF001</code></a></td><td>extended</td><td>source files, non-skill</td><td class="sev"><span class="high">high</span>/<span class="medium">medium</span>/<span class="low">low</span></td><td>Encoding and obfuscation</td></tr>
+    <tr><td><a href="#sup001"><code>SUP001</code></a></td><td>extended</td><td>dependency files, non-skill</td><td class="sev"><span class="high">high</span>/<span class="medium">medium</span>/<span class="low">low</span></td><td>Supply chain risks</td></tr>
+    <tr><td><a href="#cfg001"><code>CFG001</code></a></td><td>extended</td><td>structured config files, non-markdown</td><td class="sev"><span class="high">high</span>/<span class="medium">medium</span></td><td>Template and configuration injection</td></tr>
+    <tr><td><a href="#cry001"><code>CRY001</code></a></td><td>extended</td><td>source files</td><td class="sev"><span class="high">high</span>/<span class="medium">medium</span>/<span class="low">low</span></td><td>Cryptographic weaknesses</td></tr>
   </table>
 
   <h2 id="huc001"><code>HUC001</code> — hidden Unicode</h2>
@@ -122,6 +99,10 @@
   Subcommands like <code>dlx</code> are skipped so the package name is the
   one reported.</p>
 
+  <h2 id="too001"><code>TOO001</code> — tool calling</h2>
+  <p>Tools named shell, exec, or similar; descriptions that advertise
+  arbitrary execution; autonomous agent frameworks; disabled strict mode.</p>
+
   <h2 id="sec001"><code>SEC001</code> — embedded credentials</h2>
   <p>Provider formats (OpenAI, GitHub, Slack, AWS, Google, Bearer) score
   high. Generic assignments require a Shannon entropy above 3.5 so
@@ -129,7 +110,9 @@
 
   <h2 id="shc001"><code>SHC001</code> — shell command execution</h2>
   <p>String-form eval, exec, and compile, os.system, subprocess calls with
-  shell metacharacters or string formatting, and deprecated command modules.</p>
+  shell metacharacters or string formatting, and deprecated command
+  modules. An earlier pattern tried to match f-strings passed to commands
+  and matched every f-string call instead; it was removed.</p>
 
   <h2 id="net001"><code>NET001</code> — exfiltration channels</h2>
   <p>Cloud metadata addresses, pastebin and webhook endpoints, tunneling
@@ -138,7 +121,9 @@
 
   <h2 id="fsy001"><code>FSY001</code> — filesystem access</h2>
   <p>Traversal sequences, writes and deletes, SSH keys and certificates, env
-  and secrets files, and archive extraction with zip-slip risk.</p>
+  and secrets files, and archive extraction with zip-slip risk. Filename
+  matches use word boundaries, so <code>claude_desktop_config.json</code> is
+  not flagged as <code>config.json</code>.</p>
 
   <h2 id="env001"><code>ENV001</code> — credential access</h2>
   <p>Iteration, serialization, printing, or logging of the whole environment,
@@ -153,11 +138,12 @@
   <h2 id="obf001"><code>OBF001</code> — obfuscation</h2>
   <p>Base64 round trips combined with compression, PowerShell encoded
   commands, XOR ciphers, long encoded literals, and Cyrillic, Greek, or
-  fullwidth homoglyphs.</p>
+  fullwidth homoglyphs. Skill files are excluded; REM001 covers them.</p>
 
   <h2 id="sup001"><code>SUP001</code> — supply chain</h2>
   <p>Unpinned installs, wildcard versions, git-sourced dependencies, custom
-  package indexes, and install-time scripts in package definitions.</p>
+  package indexes, and install-time scripts in package definitions. For
+  requirements files it reads line by line and flags bare package names.</p>
 
   <h2 id="cfg001"><code>CFG001</code> — config and template injection</h2>
   <p>Template delimiters, unsafe YAML python tags, dunder references in
@@ -165,14 +151,10 @@
   config files only, not markdown, where template prose would
   false-positive. Credential assignments belong to SEC001.</p>
 
-  <h2 id="too001"><code>TOO001</code> — tool calling</h2>
-  <p>Tools named shell, exec, or similar; descriptions that advertise
-  arbitrary execution; autonomous agent frameworks; disabled strict mode.</p>
-
   <h2 id="cry001"><code>CRY001</code> — cryptography</h2>
   <p>MD5 and SHA1, DES and RC4, AES-ECB, RSA keys at 1024 bits or below, the
   random module for security purposes, disabled certificate verification, and
-  hardcoded keys or IVs.</p>
+  hardcoded keys or IVs under crypto-specific names.</p>
 </div>
 
 <footer>

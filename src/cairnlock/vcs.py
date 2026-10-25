@@ -23,7 +23,7 @@ class GitEnvError(Exception):
 
 def _git(root: Path, args: list[str]) -> subprocess.CompletedProcess[str]:
     try:
-        return subprocess.run(
+        return subprocess.run(  # cairnlock:ignore SHC001
             ["git", *args],
             cwd=root,
             capture_output=True,

@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640">
+  <rect width="1280" height="640" fill="#0F172A"/>
+  <rect x="24" y="24" width="1232" height="592" rx="24" fill="none" stroke="#1E293B" stroke-width="4"/>
+
+  <!-- Cairn mark, left side -->
+  <rect x="150" y="430" width="320" height="96" rx="48" fill="#94A3B8"/>
+  <rect x="184" y="312" width="252" height="92" rx="46" fill="#CBD5E1"/>
+  <circle cx="310" cy="348" r="20" fill="#0F172A"/>
+  <path d="M290 360 L330 360 L339 390 L281 390 Z" fill="#0F172A"/>
+  <rect x="228" y="212" width="164" height="82" rx="41" fill="#22C55E"/>
+
+  <!-- Wordmark -->
+  <text x="560" y="250" font-family="ui-monospace, Consolas, monospace" font-size="88" font-weight="700" fill="#F1F5F9">cairnlock</text>
+  <text x="562" y="320" font-family="-apple-system, Segoe UI, sans-serif" font-size="34" fill="#94A3B8">Static analyzer and lockfile</text>
+  <text x="562" y="368" font-family="-apple-system, Segoe UI, sans-serif" font-size="34" fill="#94A3B8">for AI-agent context files</text>
+
+  <!-- Feature ticks -->
+  <text x="562" y="450" font-family="-apple-system, Segoe UI, sans-serif" font-size="28" fill="#22C55E">19 detection rules</text>
+  <text x="562" y="492" font-family="-apple-system, Segoe UI, sans-serif" font-size="28" fill="#94A3B8">prompt injection · hidden Unicode · MCP configs</text>
+  <text x="562" y="534" font-family="-apple-system, Segoe UI, sans-serif" font-size="28" fill="#94A3B8">lockfile · offline · SARIF · GitHub Action</text>
+
+  <text x="150" y="580" font-family="ui-monospace, Consolas, monospace" font-size="26" fill="#64748B">github.com/pennacle-security/cairnlock</text>
+</svg>

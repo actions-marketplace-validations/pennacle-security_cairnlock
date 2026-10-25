@@ -151,6 +151,44 @@ def test_findings_are_deduplicated(tmp_path: Path) -> None:
     assert len(keys) == len(set(keys))
 
 
+def test_shc001_fstring_calls_are_not_shell_execution(tmp_path: Path) -> None:
+    """An f-string passed to any function is not shell execution on its own."""
+    root = tmp_path / "repo"
+    root.mkdir()
+    (root / "server.py").write_text(
+        'name = "world"\n'
+        'print(f"hello {name}")\n'
+        'logger.info(f"request {name} done")\n'
+        'echo(f"{name}")\n',
+        encoding="utf-8",
+    )
+    findings = scan(root, ScanConfig(profile="extended"))
+    assert "SHC001" not in _ids(findings)
+
+
+def test_fsy001_does_not_match_filenames_containing_config_json(tmp_path: Path) -> None:
+    root = tmp_path / "repo"
+    root.mkdir()
+    (root / "app.py").write_text(
+        'claude_desktop_config = "claude_desktop_config.json"\n',
+        encoding="utf-8",
+    )
+    findings = scan(root, ScanConfig(profile="extended"))
+    assert "FSY001" not in _ids(findings)
+
+
+def test_self_scan_is_clean_at_high_severity() -> None:
+    """The repository scans itself clean under --profile extended --fail-on high."""
+    from cairnlock.config import load_config
+
+    repo_root = Path(__file__).parents[1]
+    config = load_config(repo_root)  # reads .cairnlockignore
+    config.profile = "extended"
+    findings = scan(repo_root, config)
+    high = [f for f in findings if f.severity == "high"]
+    assert not high, f"self-scan has high findings: {high}"
+
+
 def test_action_profile_input_is_documented() -> None:
     text = Path("action.yml").read_text(encoding="utf-8")
     assert "profile:" in text

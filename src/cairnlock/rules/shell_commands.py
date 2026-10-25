@@ -31,7 +31,10 @@ _PATTERNS = [
 
     # Shell injection via formatting
     (r"(subprocess|os)\.[\w]+\s*\([^)]*[%+]\s*[\"']", "Shell command with string formatting - injection risk", "high"),
-    (r"f[\"'].*\{.*\}.*[\"']\s*\)", "f-string in command - potential injection", "medium"),
+    # Note: an earlier pattern tried to match f-strings passed to commands
+    # (`f"...{x}..."`), but it matched every f-string call in any file and
+    # was removed as unusable. Real f-string shell injection is caught by the
+    # os.system / subprocess patterns above, which see the command context.
 
     # Shell metacharacters in commands
     (r"(system|popen|run|call|Popen)\s*\([^)]*[;&|`$]", "Shell metacharacters in command - injection risk", "high"),

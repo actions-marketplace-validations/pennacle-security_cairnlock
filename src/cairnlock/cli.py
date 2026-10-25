@@ -63,6 +63,7 @@ def _version_callback(value: bool) -> None:
 
 @app.callback()
 def main(
+    ctx: typer.Context,
     version: bool = typer.Option(
         False, "--version", "-V", callback=_version_callback, is_eager=True, help="Show version and exit."
     ),
@@ -71,7 +72,14 @@ def main(
     no_banner: bool = typer.Option(False, "--no-banner", help="Hide ASCII banner."),
 ) -> None:
     """Static analyzer and lockfile for AI-agent context files."""
-    if not no_banner and not quiet and not version:
+    # The banner prints lazily from each command, so options placed after the
+    # subcommand (e.g. `cairnlock scan --no-banner`) still suppress it.
+    ctx.obj = {"no_banner": bool(no_banner or quiet)}
+
+
+def _print_banner(ctx: typer.Context, want: bool = True) -> None:
+    """Print the full banner when wanted and not suppressed."""
+    if want and not ctx.obj.get("no_banner"):
         typer.echo(get_banner(__version__), err=True)
 
 
@@ -125,6 +133,7 @@ def _print_summary(findings: list, verbose: bool = False) -> None:
 
 @app.command(name="scan")
 def scan_cmd(
+    ctx: typer.Context,
     path: Annotated[Path, typer.Argument(exists=True, file_okay=False, help="Directory to scan.")] = Path("."),
     fmt: Annotated[OutputFormat, typer.Option("--format", "-f", help="Output format.")] = OutputFormat.text,
     output: Annotated[Path | None, typer.Option("--output", "-o", help="Write report to file.")] = None,
@@ -156,8 +165,12 @@ def scan_cmd(
     ] = None,
     verbose: Annotated[bool, typer.Option("--verbose", "-v", help="Verbose output.")] = False,
     show_progress: Annotated[bool, typer.Option("--progress/--no-progress", help="Show progress bar.")] = True,
+    no_banner: Annotated[bool, typer.Option("--no-banner", help="Hide ASCII banner.")] = False,
 ) -> None:
     """Scan agent context files under PATH for risk patterns."""
+    # Machine formats and file output never get the banner; text on stdout does.
+    want_banner = fmt is OutputFormat.text and output is None and not no_banner
+    _print_banner(ctx, want_banner)
     try:
         config = load_config(path)
     except ConfigError as exc:
@@ -255,11 +268,13 @@ def scan_cmd(
 
 @app.command()
 def init(
+    ctx: typer.Context,
     path: Annotated[Path, typer.Argument(exists=True, file_okay=False, help="Repository root.")] = Path("."),
     force: Annotated[bool, typer.Option("--force", help="Overwrite existing lockfile.")] = False,
     verbose: Annotated[bool, typer.Option("--verbose", "-v", help="Verbose output.")] = False,
 ) -> None:
     """Record SHA-256 hashes of all tracked agent context files in cairnlock.lock."""
+    _print_banner(ctx)
     lock_path = path / lockfile.LOCKFILE_NAME
     if lock_path.exists() and not force:
         console.print(f"[red]error:[/red] {lockfile.LOCKFILE_NAME} already exists; use --force to overwrite")
@@ -341,6 +356,7 @@ def _verify_against_base(root: Path, base: str, allow_lock_change: bool) -> None
 
 @app.command()
 def verify(
+    ctx: typer.Context,
     path: Annotated[Path, typer.Argument(exists=True, file_okay=False, help="Repository root.")] = Path("."),
     base: Annotated[
         str | None,
@@ -359,6 +375,7 @@ def verify(
 
     Exit codes: 0 clean, 1 changes found, 2 usage or environment error.
     """
+    _print_banner(ctx)
     if base is not None:
         _verify_against_base(path, base, allow_lock_change)
         return
@@ -382,10 +399,12 @@ def verify(
 
 @app.command()
 def diff(
+    ctx: typer.Context,
     path: Annotated[Path, typer.Argument(exists=True, file_okay=False, help="Repository root.")] = Path("."),
     verbose: Annotated[bool, typer.Option("--verbose", "-v", help="Verbose output.")] = False,
 ) -> None:
     """Show changes against the lockfile, with findings inside changed files."""
+    _print_banner(ctx)
     lock = lockfile.load(path)
     if lock is None:
         console.print(f"[red]error:[/red] no {lockfile.LOCKFILE_NAME}; run 'cairnlock init' first")
@@ -408,11 +427,13 @@ def diff(
 
 @app.command()
 def approve(
+    ctx: typer.Context,
     paths: Annotated[list[Path], typer.Argument(..., help="File(s) to approve (relative to --root).")],
     root: Annotated[Path, typer.Option("--root", exists=True, file_okay=False, help="Repository root.")] = Path("."),
     verbose: Annotated[bool, typer.Option("--verbose", "-v", help="Verbose output.")] = False,
 ) -> None:
     """Mark changed files as reviewed (update hash) or approve deletion (remove entry)."""
+    _print_banner(ctx)
     try:
         approved, unknown = lockfile.approve(root, paths)
     except FileNotFoundError as e:
@@ -428,9 +449,11 @@ def approve(
 
 @app.command()
 def rules(
+    ctx: typer.Context,
     verbose: Annotated[bool, typer.Option("--verbose", "-v", help="Show detailed rule info.")] = False,
 ) -> None:
     """List all detection rules with profile and scope."""
+    _print_banner(ctx)
     from cairnlock.rules import RULE_META, RULES, rule_ids
 
     profile_of: dict[str, str] = {}
@@ -480,9 +503,11 @@ def rules(
 
 @app.command()
 def stats(
+    ctx: typer.Context,
     path: Annotated[Path, typer.Argument(exists=True, file_okay=False, help="Repository root.")] = Path("."),
 ) -> None:
     """Show repository statistics for tracked files."""
+    _print_banner(ctx)
     files = list(discover_files(path))
     if not files:
         console.print("[yellow]No agent context files found[/yellow]")

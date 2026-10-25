@@ -1,0 +1,6 @@
+# Fixtures intentionally contain bad patterns; they are the test suite.
+tests/**
+
+# Rule modules are pattern tables: their source necessarily contains the
+# strings the rules look for, so self-scanning them is pure noise.
+src/cairnlock/rules/**
