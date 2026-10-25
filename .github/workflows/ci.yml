@@ -19,3 +19,5 @@ jobs:
       - run: pip install -e ".[dev]"
       - run: ruff check .
       - run: pytest -q
+      - name: Self-scan (extended, fail on high)
+        run: cairnlock scan . --profile extended --fail-on high --no-banner --no-progress
