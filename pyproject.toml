@@ -38,6 +38,7 @@ dev = ["pytest>=8", "ruff>=0.5"]
 
 [project.urls]
 Homepage = "https://github.com/pennacle-security/cairnlock"
+Documentation = "https://pennacle-security.github.io/cairnlock/"
 Repository = "https://github.com/pennacle-security/cairnlock.git"
 Issues = "https://github.com/pennacle-security/cairnlock/issues"
 Changelog = "https://github.com/pennacle-security/cairnlock/blob/main/CHANGELOG.md"

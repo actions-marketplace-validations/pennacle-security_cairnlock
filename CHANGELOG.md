@@ -7,6 +7,22 @@ Semantic Versioning 2.0.0.
 
 ## [Unreleased]
 
+### Fixed
+
+- The release workflow's GitHub Release job now downloads the dist
+  artifact before creating the release; previously it attached no files.
+
+### Added
+
+- Documentation site is live at
+  https://pennacle-security.github.io/cairnlock/ (GitHub Pages from
+  `/docs`), linked from pyproject metadata and the README.
+
+### Changed
+
+- Dependabot bumps: actions/checkout 4 → 7 and actions/setup-python
+  5 → 7 across the CI and release workflows and the composite action.
+
 ## [0.6.0] - 2026-10-25
 
 ### Added

@@ -302,9 +302,11 @@ chmod +x .git/hooks/pre-commit
 
 ## Documentation
 
-Plain HTML, no build step, in `docs/`: a landing page, a guide (lockfile,
-base verification, CODEOWNERS, CI), and the rule reference. Enable GitHub
-Pages from `main` with `/docs` as the source to publish.
+Live site: **https://pennacle-security.github.io/cairnlock/** — a plain
+HTML site with no build step: a landing page, a guide (lockfile workflow,
+base verification, CODEOWNERS, CI), the rule reference, and an FAQ. Source
+lives in `docs/`; Pages deploys it from `main` with `/docs` as the source
+folder. `docs/social-kit.md` holds ready-to-post announcements.
 
 ## Limitations
 
