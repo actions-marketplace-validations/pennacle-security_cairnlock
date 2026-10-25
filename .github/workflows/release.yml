@@ -1,0 +1,79 @@
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+  # Re-run the pipeline manually for an existing v* tag.
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      # TODO pin SHA
+      - uses: actions/checkout@v4
+      # TODO pin SHA
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install build tools
+        run: python -m pip install --upgrade build twine
+      - name: Build sdist and wheel
+        run: python -m build
+      - name: Twine check
+        run: python -m twine check dist/*
+      # TODO pin SHA
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  publish-pypi:
+    needs: build
+    runs-on: ubuntu-latest
+    # This environment name must match the pending publisher on pypi.org.
+    environment: pypi
+    permissions:
+      id-token: write
+    steps:
+      # TODO pin SHA
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      # TODO pin SHA
+      - name: Publish to PyPI (trusted publishing, OIDC)
+        uses: pypa/gh-action-pypi-publish@release/v1
+
+  github-release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      # TODO pin SHA
+      - uses: actions/checkout@v4
+      - name: Extract the CHANGELOG section for this tag
+        run: |
+          python - <<'PY'
+          import os
+          import re
+
+          version = os.environ["GITHUB_REF_NAME"].lstrip("v")
+          text = open("CHANGELOG.md", encoding="utf-8").read()
+          pattern = rf"^## \[{re.escape(version)}\][^\n]*\n(.*?)(?=^## \[|\Z)"
+          match = re.search(pattern, text, re.M | re.S)
+          if match is None:
+              raise SystemExit(f"no CHANGELOG section for {version}")
+          open("NOTES.md", "w", encoding="utf-8").write(match.group(1).strip() + "\n")
+          PY
+      # TODO pin SHA
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          body_path: NOTES.md
+          files: dist/*
