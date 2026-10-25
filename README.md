@@ -370,3 +370,9 @@ this repository. Scope and process: [SECURITY.md](SECURITY.md).
 ## License
 
 [MIT](LICENSE) — Pennacle Security.
+
+---
+
+If cairnlock caught something in your repository before your agent did,
+a [star](https://github.com/pennacle-security/cairnlock/stargazers) is the
+cheapest way to help the next team find it.
