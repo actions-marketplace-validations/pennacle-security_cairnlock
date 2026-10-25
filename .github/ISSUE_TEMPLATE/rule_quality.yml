@@ -1,0 +1,54 @@
+name: False positive or false negative
+description: A rule fired on clean content, or missed content it should catch.
+labels: ["rule-quality"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Pattern quality reports need a reproducible file. Strip anything
+        sensitive; keep the pattern that triggers (or should trigger).
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Report type
+      options:
+        - False positive (finding on clean content)
+        - False negative (rule should have fired but did not)
+    validations:
+      required: true
+  - type: input
+    id: rule
+    attributes:
+      label: Rule ID
+      description: From the finding, e.g. PIN001. For false negatives, the rule you expected.
+      placeholder: REM001
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: cairnlock version
+      placeholder: cairnlock 0.5.0
+    validations:
+      required: true
+  - type: textarea
+    id: content
+    attributes:
+      label: File content that triggers (or should trigger)
+      description: Minimal snippet plus the file name it lives in.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why this is (in)correct
+      description: For false positives, why the content is legitimate. For false negatives, why an agent would act on it.
+    validations:
+      required: true
+  - type: checkboxes
+    id: fixture
+    attributes:
+      label: Willingness
+      options:
+        - label: I can provide a bad/good fixture pair and a test (this speeds up the fix a lot)

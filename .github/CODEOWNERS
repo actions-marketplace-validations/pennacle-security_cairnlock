@@ -1,0 +1,10 @@
+# Default owners for everything.
+* @incr3d1ble
+
+# The lockfile decides which agent files count as reviewed. Combined with
+# `cairnlock verify --base`, owner review here blocks silent rehash attacks.
+/cairnlock.lock @incr3d1ble
+
+# Rule logic and fixtures change what users are warned about.
+/src/cairnlock/rules/ @incr3d1ble
+/tests/fixtures/ @incr3d1ble

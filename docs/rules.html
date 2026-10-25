@@ -45,8 +45,17 @@
 
 <div class="wrap">
   <h1>Rule reference</h1>
-  <p class="lede">Eighteen static detection rules. Every rule ships with a bad
-  fixture that must trigger and a good fixture that must not.</p>
+  <p class="lede">Nineteen static detection rules across two exclusive profiles.
+  Every rule ships with a bad fixture that must trigger and a good fixture
+  that must not.</p>
+
+  <p><strong>Profiles.</strong> <code>core</code> (default) covers agent
+  context files with agent-specific rules. <code>extended</code> swaps in
+  generic rules and widens discovery to source files (<code>.py</code>,
+  <code>.js</code>, <code>.ts</code>) and dependency files
+  (<code>requirements*</code>, <code>package.json</code>,
+  <code>pyproject.toml</code>, <code>setup.py</code>,
+  <code>setup.cfg</code>). One profile runs per scan.</p>
 
   <table>
     <tr><th>ID</th><th>Scope</th><th>Severity</th><th>Detects</th></tr>
@@ -96,18 +105,22 @@
   <p>A filesystem server given <code>/</code>, <code>~</code>, or a drive root
   can read anything the process can. Repo-relative mounts are fine.</p>
 
-  <h2 id="mcp003"><code>MCP003</code> — unpinned dangerous commands</h2>
-  <p>Extends UNP001 beyond package runners to docker, kubectl, helm, curl,
-  wget, and shells used as MCP server commands without a version pin.</p>
+  <h2 id="mcp003"><code>MCP003</code> — infrastructure commands as servers</h2>
+  <p>Flags shell and infrastructure commands (bash, sh, powershell, curl,
+  wget, docker, podman, kubectl, helm) used as the MCP server executable,
+  regardless of arguments. Package runners belong to UNP001, so one issue
+  yields one finding.</p>
 
   <h2 id="mcp004"><code>MCP004</code> — sensitive env vars</h2>
   <p>Flags server definitions that receive environment variables with
   credential-like prefixes: cloud keys, database URLs, tokens, certificates.</p>
 
   <h2 id="unp001"><code>UNP001</code> — unpinned packages</h2>
-  <p>npx, uvx, and bunx run whatever the registry serves today. A pin such as
-  <code>pkg@1.2.3</code> or <code>pkg==1.2.3</code> satisfies the rule;
-  <code>@latest</code> does not.</p>
+  <p>Package runners (npx, uvx, bunx, pnpm, yarn, pipx) execute whatever the
+  registry serves today. A pin such as <code>pkg@1.2.3</code> or
+  <code>pkg==1.2.3</code> satisfies the rule; <code>@latest</code> does not.
+  Subcommands like <code>dlx</code> are skipped so the package name is the
+  one reported.</p>
 
   <h2 id="sec001"><code>SEC001</code> — embedded credentials</h2>
   <p>Provider formats (OpenAI, GitHub, Slack, AWS, Google, Bearer) score
@@ -148,8 +161,9 @@
 
   <h2 id="cfg001"><code>CFG001</code> — config and template injection</h2>
   <p>Template delimiters, unsafe YAML python tags, dunder references in
-  config, connection strings with inline credentials, and hardcoded secrets
-  in config files.</p>
+  config, and connection strings with inline credentials. Runs on structured
+  config files only, not markdown, where template prose would
+  false-positive. Credential assignments belong to SEC001.</p>
 
   <h2 id="too001"><code>TOO001</code> — tool calling</h2>
   <p>Tools named shell, exec, or similar; descriptions that advertise

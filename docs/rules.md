@@ -3,27 +3,32 @@
 SARIF results link here by rule id anchor. The rendered version lives at
 `docs/rules.html`.
 
-| ID | Scope | Severity | Detects |
-|---|---|---|---|
-| [HUC001](#huc001) | all files | high/medium/low | Invisible and bidirectional Unicode control characters |
-| [PIN001](#pin001) | JSON description fields, SKILL.md frontmatter | high | Prompt-injection phrases in tool and skill descriptions |
-| [REM001](#rem001) | SKILL.md, files under skills/ | high/medium | Pipe-to-shell downloads, base64 payloads, remote fetches |
-| [MCP001](#mcp001) | MCP JSON configs | high | Auto-approve or permission-skipping flags |
-| [MCP002](#mcp002) | MCP JSON configs | medium | Filesystem server mounted at a filesystem root |
-| [MCP003](#mcp003) | MCP JSON configs | medium | Unpinned dangerous command |
-| [MCP004](#mcp004) | MCP JSON configs | high | Sensitive environment variables passed to a server |
-| [UNP001](#unp001) | MCP JSON configs | medium | npx, uvx, or bunx packages without a version pin |
-| [SEC001](#sec001) | all files | high/medium | Embedded credentials with entropy validation |
-| [SHC001](#shc001) | code and config files | high/medium | Shell command execution patterns |
-| [NET001](#net001) | code and config files | high/medium | Data exfiltration patterns |
-| [FSY001](#fsy001) | code and config files | high/medium | Path traversal, sensitive files, unsafe archives |
-| [ENV001](#env001) | code and config files | high/medium | Credential access through environment variables |
-| [PRI001](#pri001) | code and config files | high/medium | Privilege escalation and process injection |
-| [OBF001](#obf001) | code and config files | high/medium/low | Encoding and obfuscation |
-| [SUP001](#sup001) | dependency files | high/medium/low | Supply chain risks |
-| [CFG001](#cfg001) | config and template files | high/medium | Template and configuration injection |
-| [TOO001](#too001) | tool and function definitions | high/medium | Tool calling injection risks |
-| [CRY001](#cry001) | code and config files | high/medium/low | Cryptographic weaknesses |
+Rules run in one of two exclusive profiles. `core` (default) covers agent
+context files; `extended` covers source and dependency files and widens
+discovery to `.py`, `.js`, `.ts`, `requirements*`, `package.json`,
+`pyproject.toml`, `setup.py`, and `setup.cfg`. One profile runs per scan.
+
+| ID | Profile | Scope | Severity | Detects |
+|---|---|---|---|---|
+| [HUC001](#huc001) | core | all context files | high/medium/low | Invisible and bidirectional Unicode control characters |
+| [PIN001](#pin001) | core | JSON description fields, SKILL.md frontmatter | high | Prompt-injection phrases in tool and skill descriptions |
+| [REM001](#rem001) | core | SKILL.md, files under skills/ | high/medium | Pipe-to-shell downloads, base64 payloads, remote fetches |
+| [MCP001](#mcp001) | core | MCP JSON configs | high | Auto-approve or permission-skipping flags |
+| [MCP002](#mcp002) | core | MCP JSON configs | medium | Filesystem server mounted at a filesystem root |
+| [MCP003](#mcp003) | core | MCP JSON configs | medium | Shell or infrastructure command as the server |
+| [MCP004](#mcp004) | core | MCP JSON configs | high | Sensitive environment variables passed to a server |
+| [UNP001](#unp001) | core | MCP JSON configs | medium | Package-runner package without a version pin |
+| [TOO001](#too001) | core | tool definitions, JSON configs | high/medium | Tool calling injection risks |
+| [SEC001](#sec001) | extended | all scanned files | high/medium | Embedded credentials with entropy validation |
+| [SHC001](#shc001) | extended | source files | high/medium | Shell command execution patterns |
+| [NET001](#net001) | extended | source files | high/medium | Data exfiltration patterns |
+| [FSY001](#fsy001) | extended | source files | high/medium | Path traversal, sensitive files, unsafe archives |
+| [ENV001](#env001) | extended | source files | high/medium | Credential access through environment variables |
+| [PRI001](#pri001) | extended | source files | high/medium | Privilege escalation and process injection |
+| [OBF001](#obf001) | extended | source files, non-skill | high/medium/low | Encoding and obfuscation |
+| [SUP001](#sup001) | extended | dependency files, non-skill | high/medium/low | Supply chain risks |
+| [CFG001](#cfg001) | extended | structured config files, non-markdown | high/medium | Template and configuration injection |
+| [CRY001](#cry001) | extended | source files | high/medium/low | Cryptographic weaknesses |
 
 ## HUC001 — hidden Unicode
 
@@ -53,10 +58,12 @@ long base64 literals, and remote git or pip sources inside skill files.
 A filesystem server given `/`, `~`, or a drive root can read anything the
 process can. Repo-relative mounts are fine.
 
-## MCP003 — unpinned dangerous commands
+## MCP003 — infrastructure commands as servers
 
-Extends UNP001 beyond package runners to docker, kubectl, helm, curl, wget,
-and shells used as MCP server commands without a version pin.
+Flags shell and infrastructure commands (bash, sh, powershell, curl, wget,
+docker, podman, kubectl, helm) used as the MCP server executable, regardless
+of arguments. Package runners belong to UNP001, so one issue yields one
+finding.
 
 ## MCP004 — sensitive env vars
 
@@ -65,8 +72,10 @@ prefixes: cloud keys, database URLs, tokens, certificates.
 
 ## UNP001 — unpinned packages
 
-npx, uvx, and bunx run whatever the registry serves today. A pin such as
-`pkg@1.2.3` or `pkg==1.2.3` satisfies the rule; `@latest` does not.
+Package runners (npx, uvx, bunx, pnpm, yarn, pipx) execute whatever the
+registry serves today. A pin such as `pkg@1.2.3` or `pkg==1.2.3` satisfies
+the rule; `@latest` does not. Subcommands like `dlx` are skipped so the
+package name is the one reported.
 
 ## SEC001 — embedded credentials
 
@@ -116,8 +125,9 @@ package indexes, and install-time scripts in package definitions.
 ## CFG001 — config and template injection
 
 Template delimiters, unsafe YAML python tags, dunder references in config,
-connection strings with inline credentials, and hardcoded secrets in config
-files.
+and connection strings with inline credentials. Runs on structured config
+files only, not markdown, where template prose would false-positive.
+Credential assignments belong to SEC001.
 
 ## TOO001 — tool calling
 

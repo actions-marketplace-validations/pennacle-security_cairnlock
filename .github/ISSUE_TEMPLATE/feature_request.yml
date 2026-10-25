@@ -1,0 +1,30 @@
+name: Feature request
+description: Propose a rule, command, or integration.
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What risk or workflow gap does this address? A concrete attack or annoyance beats an abstract need.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: What should cairnlock do? Include the command surface you imagine.
+    validations:
+      required: true
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Scope check
+      options:
+        - label: This works offline (no network calls at scan time)
+        - label: This can ship with a bad/good fixture pair
+        - label: I checked [docs/rules-audit.md](https://github.com/pennacle-security/cairnlock/blob/main/docs/rules-audit.md) for overlap with existing rules
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered

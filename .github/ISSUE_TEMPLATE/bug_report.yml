@@ -1,0 +1,50 @@
+name: Bug report
+description: Something in cairnlock behaves differently from what the docs say.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before opening: run `cairnlock --version` and check the
+        [known limitations](https://github.com/pennacle-security/cairnlock#limitations).
+        Pattern quality issues belong in the false-positive form.
+  - type: input
+    id: version
+    attributes:
+      label: cairnlock version
+      description: Output of `cairnlock --version`.
+      placeholder: cairnlock 0.5.0
+    validations:
+      required: true
+  - type: input
+    id: python
+    attributes:
+      label: Python version and OS
+      placeholder: "3.13.2, Windows 11"
+    validations:
+      required: true
+  - type: textarea
+    id: command
+    attributes:
+      label: Command and full output
+      description: Include the exact command and the complete output.
+      placeholder: |
+        $ cairnlock scan .
+        ...
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+      description: What should have happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Minimal reproduction
+      description: Smallest file tree and content that reproduces it.
+    validations:
+      required: true

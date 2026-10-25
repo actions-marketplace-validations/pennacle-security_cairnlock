@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Question or discussion
+    url: https://github.com/pennacle-security/cairnlock/discussions
+    about: Ask how cairnlock works or how to adopt it.
+  - name: Security vulnerability
+    url: https://github.com/pennacle-security/cairnlock/security/advisories/new
+    about: Report exploitable issues privately, not as a public issue.
