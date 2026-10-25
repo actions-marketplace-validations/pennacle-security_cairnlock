@@ -55,6 +55,11 @@ jobs:
     steps:
       # TODO pin SHA
       - uses: actions/checkout@v7
+      # TODO pin SHA
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
       - name: Extract the CHANGELOG section for this tag
         run: |
           python - <<'PY'
