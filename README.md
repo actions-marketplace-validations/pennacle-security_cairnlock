@@ -48,10 +48,11 @@ when the same pull request rehashes the lockfile to hide it.
 
 | Capability | Command | What you get |
 |---|---|---|
-| Risk scanning | `cairnlock scan` | 20 rules across two profiles, inline ignores, deduplication |
+| Risk scanning | `cairnlock scan` | 21 rules across two profiles, inline ignores, deduplication |
 | Change control | `cairnlock init` / `verify` | SHA-256 lockfile; unreviewed edits fail CI |
 | Tamper protection | `cairnlock verify --base origin/main` | lockfile rehashing in the same PR cannot hide edits |
 | Diff-scoped scanning | `scan --changed origin/main` | scan only what a change touched — monorepo speed |
+| Ancestor defense | `scan --include-ancestors` | catches stray AGENTS.md in parent folders — agents read up the tree |
 | Noise control | `--fail-on`, `--baseline`, config file | adopt on large repos without drowning in findings |
 | Reporting | `--format text/json/sarif/html/md/github` | SARIF for Code Scanning, `::error` annotations for PRs |
 | Agent integration | `cairnlock mcp` | MCP stdio server: agents audit their own context files |
@@ -193,6 +194,7 @@ Full rule pages: [docs/rules.md](docs/rules.md) · Scope audit:
 | MCP004 | core | MCP JSON configs | high | sensitive env vars passed to a server |
 | UNP001 | core | MCP JSON configs | medium | package-runner package without a version pin |
 | CLD001 | core | .claude/settings.json | high | risky permission allowlist (bare Bash, curl, bypassPermissions) |
+| TAM001 | core | all context files | high/med | agent file tries to defeat the scanner (self-approve, lockfile removal, bypass) |
 | TOO001 | core | tool definitions, JSON configs | high/med | tool and function calling injection |
 | SEC001 | extended | all scanned files | high/med | embedded credentials (entropy-validated) |
 | SHC001 | extended | source files | high/med | shell command execution patterns |
@@ -275,6 +277,11 @@ Built for adoption on large repositories:
 
 `.git`, `.venv`, `node_modules` stay ignored; the agent directories above
 are scanned even though they are hidden. Files over 1 MB are skipped.
+
+**Parent folders.** Agents merge context files from directories *above*
+your project too. `scan --include-ancestors` checks every parent up to the
+filesystem root for stray context files and reports them with `../` paths —
+non-recursive, so sibling projects are never swept in.
 
 ## CI integration
 

@@ -7,6 +7,37 @@ Semantic Versioning 2.0.0.
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-10-25
+
+### Added
+
+- Ancestor discovery: `cairnlock scan --include-ancestors`. Agents merge
+  AGENTS.md and other context files from parent directories up the tree, so
+  one stray file above the project can steer a run. With the flag, every
+  parent directory up to the filesystem root is checked for context files
+  (non-recursive by design — recursive ancestor walks would sweep sibling
+  projects), and findings are reported with `../` paths so it is always
+  visible that they live outside the scanned tree. The MCP `scan` tool
+  takes the same option.
+- New core rule TAM001: an agent context file that instructs the agent to
+  run `cairnlock approve`, delete or revert the lockfile, disable or bypass
+  the scanner, or add `cairnlock:ignore` suppressions is asking the agent
+  to defeat the guard — reported at high (medium for weakening flags).
+  Ordinary documentation about the tool stays clean. Bad/good fixtures
+  included.
+
+### Fixed
+
+- FSY001's path-traversal pattern matched `../` anywhere, including
+  docstrings that merely explain relative paths. Traversal now requires a
+  quoted path string (`"../x"`, `"../../y"`), which is where it is real.
+
+### Changed
+
+- Discovery internals: `scanner.scan` accepts `include_ancestors`, and the
+  CLI walks `(path, relative)` target pairs so project files and ancestor
+  files share one loop.
+
 ## [0.7.0] - 2026-10-25
 
 ### Added
@@ -247,7 +278,8 @@ Semantic Versioning 2.0.0.
 - Secret detection false positives on placeholder values
 - Cross-rule false positives in good fixtures
 
-[Unreleased]: https://github.com/pennacle-security/cairnlock/compare/v0.7.0...HEAD
+[Unreleased]: https://github.com/pennacle-security/cairnlock/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/pennacle-security/cairnlock/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/pennacle-security/cairnlock/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/pennacle-security/cairnlock/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/pennacle-security/cairnlock/compare/v0.4.0...v0.5.0

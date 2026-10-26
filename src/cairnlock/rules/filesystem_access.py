@@ -23,7 +23,9 @@ _PATTERNS = [
     (r"\bos\.(remove|unlink|rmdir|mkdir|makedirs|rename|replace)\s*\(", "OS file operation - verify safety", "medium"),
 
     # Path traversal
-    (r"\.\./|\.\.\\", "Path traversal sequence - potential directory escape", "high"),
+    # Path traversal in path strings: quote, one or more ../ or ..\ segments,
+    # then content. Bare "../" in prose or docstrings does not match.
+    (r"[\"'](?:\.\./|\.\.\\)+[^\"']", "Path traversal sequence - potential directory escape", "high"),
     (r"os\.path\.(join|abspath|realpath)\s*\([^)]*\.\.", "Path join with traversal - potential escape", "high"),
 
     # Sensitive file access

@@ -77,6 +77,33 @@ def _is_code_file(name: str) -> bool:
     return Path(name).suffix in CODE_SUFFIXES
 
 
+def ancestor_files(root: Path) -> list[tuple[Path, str]]:
+    """Context files sitting directly inside each parent directory above
+    root. Non-recursive by design: agents merge ancestor instruction files
+    themselves, and recursive ancestor walks would sweep sibling projects.
+    Paths are relative to root with a "../" prefix so output always shows
+    that a finding lives outside the scanned tree."""
+    root_res = root.resolve()
+    out: list[tuple[Path, str]] = []
+    for parent in root_res.parents:
+        try:
+            entries = sorted(os.scandir(parent), key=lambda e: e.name)
+        except OSError:
+            continue
+        for entry in entries:
+            if entry.name not in CONTEXT_FILENAMES and entry.name != "SKILL.md":
+                continue
+            p = Path(entry.path)
+            try:
+                if not p.is_file() or p.stat().st_size > MAX_FILE_SIZE:
+                    continue
+            except OSError:
+                continue
+            rel = Path(os.path.relpath(p, root_res)).as_posix()
+            out.append((p, rel))
+    return out
+
+
 def discover_files(root: Path, include_code: bool = False) -> list[Path]:
     """Return agent context files (and optionally code files), sorted."""
     found: list[Path] = []
@@ -141,8 +168,14 @@ def check_file(
     return list(unique.values())
 
 
-def scan(root: Path, config: ScanConfig | None = None) -> list[Finding]:
-    """Scan context files (plus code files under the extended profile)."""
+def scan(root: Path, config: ScanConfig | None = None, include_ancestors: bool = False) -> list[Finding]:
+    """Scan context files (plus code files under the extended profile).
+
+    With include_ancestors, context files directly inside each parent
+    directory above root are also scanned — agents read AGENTS.md up the
+    tree, so a stray file above the project can steer a run. Ancestor
+    findings are reported with "../" relative paths.
+    """
     ignore: list[str] = []
     disabled: set[str] = set()
     allowed: set[str] | None = None
@@ -154,8 +187,13 @@ def scan(root: Path, config: ScanConfig | None = None) -> list[Finding]:
         include_code = config.profile == "extended"
 
     findings: list[Finding] = []
-    for p in discover_files(root, include_code=include_code):
-        rel = p.relative_to(root).as_posix()
+    targets: list[tuple[Path, str]] = [
+        (p, p.relative_to(root).as_posix()) for p in discover_files(root, include_code=include_code)
+    ]
+    if include_ancestors:
+        targets.extend(ancestor_files(root))
+
+    for p, rel in targets:
         if ignore and is_ignored(rel, ignore):
             continue
         try:

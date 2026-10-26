@@ -61,6 +61,14 @@
     same change is its own finding and fails the run. Add CODEOWNERS on
     <code>cairnlock.lock</code> so a human also reviews that file.</dd>
 
+    <dt>Can a file above my project steer the agent?</dt>
+    <dd>Yes — agents merge AGENTS.md and other context files from parent
+    directories up the tree, so a stray file above the repo applies to every
+    run inside it. Run
+    <code>cairnlock scan --include-ancestors</code> to check every parent up
+    to the filesystem root; findings from outside the tree are reported with
+    <code>../</code> paths.</dd>
+
     <dt>Does cairnlock send my files anywhere?</dt>
     <dd>No. No network calls at scan time, ever. Base verification reads
     from the local git clone only. Nothing it scans is executed, imported,

@@ -183,6 +183,13 @@ def scan_cmd(
             help="Scan only files changed since this git ref (plus untracked files).",
         ),
     ] = None,
+    include_ancestors: Annotated[
+        bool,
+        typer.Option(
+            "--include-ancestors",
+            help="Also scan context files in parent directories above PATH — agents read AGENTS.md up the tree.",
+        ),
+    ] = False,
 ) -> None:
     """Scan agent context files under PATH for risk patterns."""
     # Machine formats and file output never get the banner; text on stdout does.
@@ -221,7 +228,15 @@ def scan_cmd(
     files = list(discover_files(path, include_code=include_code))
     if changed_set is not None:
         files = [p for p in files if p.relative_to(path).as_posix() in changed_set]
-    if not files:
+
+    disabled = set(config.disabled_rules)
+    ignore = config.ignore
+    targets: list[tuple[Path, str]] = [(p, p.relative_to(path).as_posix()) for p in files]
+    if include_ancestors:
+        from cairnlock.scanner import ancestor_files
+
+        targets.extend(ancestor_files(path))
+    if not targets:
         # Status goes to stderr; machine formats still emit a valid document.
         if changed_set is not None:
             err_console.print(f"no changed context files vs '{changed}'")
@@ -232,8 +247,6 @@ def scan_cmd(
         typer.echo(_render([], fmt))
         return
 
-    disabled = set(config.disabled_rules)
-    ignore = config.ignore
     findings: list = []
     with Progress(
         SpinnerColumn(),
@@ -241,11 +254,10 @@ def scan_cmd(
         BarColumn(),
         TaskProgressColumn(),
         console=err_console,
-        disable=not show_progress or fmt is not OutputFormat.text or len(files) < 5,
+        disable=not show_progress or fmt is not OutputFormat.text or len(targets) < 5,
     ) as progress:
-        task = progress.add_task("Scanning files...", total=len(files))
-        for p in files:
-            rel = p.relative_to(path).as_posix()
+        task = progress.add_task("Scanning files...", total=len(targets))
+        for p, rel in targets:
             progress.advance(task)
             if ignore and is_ignored(rel, ignore):
                 continue

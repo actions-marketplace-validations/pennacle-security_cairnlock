@@ -39,7 +39,8 @@ def _tool_scan(args: dict) -> str:
             config.profile = profile
     except ConfigError as exc:
         raise ValueError(str(exc)) from exc
-    return render_text(scan(path, config))
+    include_ancestors = bool(args.get("include_ancestors", False))
+    return render_text(scan(path, config, include_ancestors=include_ancestors))
 
 
 def _tool_verify(args: dict) -> str:
@@ -130,6 +131,10 @@ TOOLS_SPEC = [
                     "type": "string",
                     "enum": ["core", "extended"],
                     "description": "Rule set to run (default from config, else core)",
+                },
+                "include_ancestors": {
+                    "type": "boolean",
+                    "description": "Also scan context files in parent directories — agents read AGENTS.md up the tree",
                 },
             },
         },

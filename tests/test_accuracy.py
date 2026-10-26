@@ -189,6 +189,32 @@ def test_self_scan_is_clean_at_high_severity() -> None:
     assert not high, f"self-scan has high findings: {high}"
 
 
+def test_fsy001_traversal_needs_a_path_string(tmp_path: Path) -> None:
+    root = tmp_path / "repo"
+    root.mkdir()
+    (root / "loader.py").write_text(
+        'data = open("../secrets.txt").read()\n'
+        'config = load("../config/app.yaml")\n',
+        encoding="utf-8",
+    )
+    findings = scan(root, ScanConfig(profile="extended"))
+    assert len([f for f in findings if f.rule_id == "FSY001"]) == 2
+
+
+def test_fsy001_ignores_traversal_in_prose(tmp_path: Path) -> None:
+    """Bare '../' without a quoted path is documentation, not traversal."""
+    root = tmp_path / "repo"
+    root.mkdir()
+    (root / "docs.py").write_text(
+        'def rel(p):\n'
+        '    # paths like ../x are resolved here\n'
+        '    return p\n',
+        encoding="utf-8",
+    )
+    findings = scan(root, ScanConfig(profile="extended"))
+    assert "FSY001" not in _ids(findings)
+
+
 def test_action_profile_input_is_documented() -> None:
     text = Path("action.yml").read_text(encoding="utf-8")
     assert "profile:" in text

@@ -17,6 +17,8 @@ discovery to `.py`, `.js`, `.ts`, `requirements*`, `package.json`,
 | [MCP002](#mcp002) | core | MCP JSON configs | medium | Filesystem server mounted at a filesystem root |
 | [MCP003](#mcp003) | core | MCP JSON configs | medium | Shell or infrastructure command as the server |
 | [MCP004](#mcp004) | core | MCP JSON configs | high | Sensitive environment variables passed to a server |
+| [CLD001](#cld001) | core | Claude Code settings.json | high | Risky permission allowlist: bare Bash, curl, bypassPermissions |
+| [TAM001](#tam001) | core | all context files | high/medium | Agent context file attempts to defeat the scanner |
 | [UNP001](#unp001) | core | MCP JSON configs | medium | Package-runner package without a version pin |
 | [TOO001](#too001) | core | tool definitions, JSON configs | high/medium | Tool calling injection risks |
 | [SEC001](#sec001) | extended | all scanned files | high/medium | Embedded credentials with entropy validation |
@@ -69,6 +71,13 @@ finding.
 
 Server definitions that receive environment variables with credential-like
 prefixes: cloud keys, database URLs, tokens, certificates.
+
+## CLD001 — Claude Code permissions
+
+Flags `permissions.allow` entries that grant an agent unrestricted shell
+or network access (bare `Bash`, `Bash(curl:*)` and similar), and
+`defaultMode: "bypassPermissions"`. Normal entries such as
+`Bash(npm run test:*)` stay clean.
 
 ## UNP001 — unpinned packages
 
@@ -133,6 +142,13 @@ Credential assignments belong to SEC001.
 
 Tools named shell, exec, or similar; descriptions that advertise arbitrary
 execution; autonomous agent frameworks; disabled strict mode.
+
+## TAM001 — self-tamper
+
+An agent context file instructing the agent to run `cairnlock approve`,
+delete or revert the lockfile, disable the scanner, or add
+`cairnlock:ignore` suppressions is asking the agent to defeat the guard.
+Ordinary documentation about the tool stays clean.
 
 ## CRY001 — cryptography
 

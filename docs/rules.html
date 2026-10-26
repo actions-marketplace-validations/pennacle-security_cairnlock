@@ -30,7 +30,7 @@
 
 <div class="wrap wide">
   <h1>Rule reference</h1>
-  <p class="lede">Nineteen static detection rules across two exclusive profiles.
+  <p class="lede">Twenty-one static detection rules across two exclusive profiles.
   Every rule ships with a bad fixture that must trigger and a good fixture
   that must not.</p>
 
@@ -51,6 +51,8 @@
     <tr><td><a href="#mcp002"><code>MCP002</code></a></td><td>core</td><td>MCP JSON configs</td><td class="sev"><span class="medium">medium</span></td><td>Filesystem server mounted at a filesystem root</td></tr>
     <tr><td><a href="#mcp003"><code>MCP003</code></a></td><td>core</td><td>MCP JSON configs</td><td class="sev"><span class="medium">medium</span></td><td>Shell or infrastructure command as the server</td></tr>
     <tr><td><a href="#mcp004"><code>MCP004</code></a></td><td>core</td><td>MCP JSON configs</td><td class="sev"><span class="high">high</span></td><td>Sensitive environment variables passed to a server</td></tr>
+    <tr><td><a href="#cld001"><code>CLD001</code></a></td><td>core</td><td>Claude Code settings.json</td><td class="sev"><span class="high">high</span></td><td>Risky permission allowlist: bare Bash, curl, bypassPermissions</td></tr>
+    <tr><td><a href="#tam001"><code>TAM001</code></a></td><td>core</td><td>all context files</td><td class="sev"><span class="high">high</span>/<span class="medium">medium</span></td><td>Agent context file attempts to defeat the scanner</td></tr>
     <tr><td><a href="#unp001"><code>UNP001</code></a></td><td>core</td><td>MCP JSON configs</td><td class="sev"><span class="medium">medium</span></td><td>Package-runner package without a version pin</td></tr>
     <tr><td><a href="#too001"><code>TOO001</code></a></td><td>core</td><td>tool definitions, JSON configs</td><td class="sev"><span class="high">high</span>/<span class="medium">medium</span></td><td>Tool and function calling injection risks</td></tr>
     <tr><td><a href="#sec001"><code>SEC001</code></a></td><td>extended</td><td>all scanned files</td><td class="sev"><span class="high">high</span>/<span class="medium">medium</span></td><td>Embedded credentials with Shannon entropy validation</td></tr>
@@ -99,6 +101,13 @@
   <h2 id="mcp004"><code>MCP004</code> — sensitive env vars</h2>
   <p>Flags server definitions that receive environment variables with
   credential-like prefixes: cloud keys, database URLs, tokens, certificates.</p>
+
+  <h2 id="cld001"><code>CLD001</code> — Claude Code permissions</h2>
+  <p>Flags <code>permissions.allow</code> entries that grant an agent
+  unrestricted shell or network access (bare <code>Bash</code>,
+  <code>Bash(curl:*)</code> and similar), and
+  <code>defaultMode: "bypassPermissions"</code>. Normal entries such as
+  <code>Bash(npm run test:*)</code> stay clean.</p>
 
   <h2 id="unp001"><code>UNP001</code> — unpinned packages</h2>
   <p>Package runners (npx, uvx, bunx, pnpm, yarn, pipx) execute whatever the
@@ -158,6 +167,13 @@
   config, and connection strings with inline credentials. Runs on structured
   config files only, not markdown, where template prose would
   false-positive. Credential assignments belong to SEC001.</p>
+
+  <h2 id="tam001"><code>TAM001</code> — self-tamper</h2>
+  <p>An agent context file instructing the agent to run <code>cairnlock
+  approve</code>, delete or revert the lockfile, disable the scanner, or
+  add <code>cairnlock:ignore</code> suppressions is asking the agent to
+  defeat the guard. Ordinary documentation about the tool stays
+  clean.</p>
 
   <h2 id="cry001"><code>CRY001</code> — cryptography</h2>
   <p>MD5 and SHA1, DES and RC4, AES-ECB, RSA keys at 1024 bits or below, the
